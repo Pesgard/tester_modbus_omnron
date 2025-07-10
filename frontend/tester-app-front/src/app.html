@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en" data-theme="cerberus">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		%sveltekit.head%
+		<style>
+			/* Ensure proper scrolling and prevent layout stretching */
+			html, body {
+				height: 100%;
+				overflow: hidden;
+			}
+			
+			/* Custom scrollbar styling */
+			.custom-scroll::-webkit-scrollbar {
+				width: 8px;
+			}
+			
+			.custom-scroll::-webkit-scrollbar-track {
+				background: transparent;
+			}
+			
+			.custom-scroll::-webkit-scrollbar-thumb {
+				background: rgba(255, 255, 255, 0.2);
+				border-radius: 4px;
+			}
+			
+			.custom-scroll::-webkit-scrollbar-thumb:hover {
+				background: rgba(255, 255, 255, 0.3);
+			}
+			
+			/* Ensure content doesn't affect sidebar */
+			.dashboard-content {
+				height: 100vh;
+				overflow-y: auto;
+				overflow-x: hidden;
+			}
+			
+			/* Prevent flex items from growing beyond container */
+			.dashboard-rail {
+				flex-shrink: 0;
+				width: auto;
+			}
+		</style>
+	</head>
+	<body data-sveltekit-preload-data="hover" class="h-full overflow-hidden">
+		<div style="display: contents" class="h-full">%sveltekit.body%</div>
+	</body>
+</html>
