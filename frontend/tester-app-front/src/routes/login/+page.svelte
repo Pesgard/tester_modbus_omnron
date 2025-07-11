@@ -240,6 +240,13 @@
 					</div>
 				</div>
 			{/if}
+
+			<!-- Go to root page -->
+			<div class="mt-6 text-center">
+				<a href="/" class="text-sm text-surface-600-400 hover:text-surface-700-300 transition-colors">
+					Diagramas
+				</a>
+			</div>
 		</div>
 
 		<!-- Footer -->

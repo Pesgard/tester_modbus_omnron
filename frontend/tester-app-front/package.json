@@ -46,6 +46,7 @@
 	},
 	"dependencies": {
 		"@lucide/svelte": "^0.525.0",
-		"@vincjo/datatables": "^2.5.0"
+		"@vincjo/datatables": "^2.5.0",
+		"photoswipe": "^5.4.4"
 	}
 }
