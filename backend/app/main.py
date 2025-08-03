@@ -384,8 +384,8 @@ async def websocket_endpoint(websocket: WebSocket):
         try:
             while True:
                 data = await websocket.receive_text()
-                message = {"type": "pong", "timestamp": str(asyncio.get_event_loop().time())}
-                await websocket.send_text(str(message))
+                # Use the WebSocketManager to handle client messages properly
+                await websocket_manager.handle_client_message(websocket, data)
         except WebSocketDisconnect:
             websocket_manager.disconnect(websocket)
 
