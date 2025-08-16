@@ -1,14 +1,18 @@
+version: "3.9"
+
 services:
   db:
-    image: postgres
+    image: postgres:15
+    container_name: myapp_postgres
     restart: always
-    ports:
-      - 5432:5432
     environment:
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: mysecretpassword
-      POSTGRES_DB: local
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: production-system-amphenol
+    ports:
+      - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
+
 volumes:
-  pgdata:
+  db_data:
