@@ -2,7 +2,8 @@
 import chokidar from 'chokidar';
 import fs from 'fs';
 import path from 'path';
-import { broadcast } from './ws.server';
+import { broadcast } from '../ws/ws.server';
+
 
 interface FileMetadata {
     nombre: string;

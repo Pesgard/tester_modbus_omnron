@@ -45,9 +45,12 @@
 	},
 	"dependencies": {
 		"@lucia-auth/adapter-prisma": "^4.0.1",
+		"@lucide/svelte": "^0.539.0",
 		"@prisma/client": "^6.14.0",
 		"@prisma/extension-accelerate": "^2.0.2",
 		"chokidar": "^4.0.3",
+		"lucia": "^3.2.2",
+		"oslo": "^1.2.1",
 		"postgres": "^3.4.5",
 		"ws": "^8.18.3"
 	},

@@ -1,7 +1,7 @@
 // src/lib/server/startup.ts
-import { startWebSocketServer } from './ws.server';
-import { startTcpServer } from './tcp.server';
-import { startFtpWatcher } from './ftp-image-watcher.server';
+import { startWebSocketServer } from './ws/ws.server';
+import { startTcpServer } from './tcp/tcp.server';
+import { startFtpWatcher } from './ftp/ftp-image-watcher.server';
 
 let started = false;
 

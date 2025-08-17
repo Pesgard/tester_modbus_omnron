@@ -1,6 +1,6 @@
 // src/lib/server/tcp.service.ts
 import net from 'net';
-import { broadcast } from './ws.server';
+import { broadcast } from '../ws/ws.server';
 
 
 export function startTcpServer() {
@@ -38,3 +38,5 @@ export function startTcpServer() {
 
 	return server;
 }
+
+
