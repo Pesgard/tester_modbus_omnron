@@ -12,7 +12,7 @@ datasource db {
 /// -------------------------
 
 model User {
-  id            String     @id
+  id            String     @id @default(uuid())
   username      String     @unique
   hash_password String
   active        Boolean    @default(true)
@@ -27,7 +27,7 @@ model User {
 }
 
 model Session {
-  id        String   @id
+  id        String   @id @default(uuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime

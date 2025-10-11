@@ -2,6 +2,7 @@
 import chokidar from 'chokidar';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { broadcast } from '../ws/ws.server';
 
 
@@ -31,7 +32,7 @@ interface ConfiguracionArchivos {
 
 // Configuración por defecto
 const CONFIG_DEFAULT: ConfiguracionArchivos = {
-    directorioDestino: 'C:/ftp/procesados',
+    directorioDestino: path.join(os.homedir(), 'ftp', 'procesados'),
     prefijoId: 'IMG',
     formatoNombre: 'timestamp',
     organizarPorFecha: true,
@@ -219,7 +220,7 @@ function formatConsoleOutput(metadata: FileMetadata): void {
 }
 
 export function startFtpWatcher(configuracion: Partial<ConfiguracionArchivos> = {}) {
-    const ftpDir = 'C:/ftp';
+    const ftpDir = process.env.FTP_WATCH_DIR || path.join(os.homedir(), 'ftp');
     const config = { ...CONFIG_DEFAULT, ...configuracion };
     
     // Verificar que el directorio existe

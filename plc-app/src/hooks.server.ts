@@ -67,6 +67,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.user = user;
 	event.locals.session = session;
 
+	console.log('User in locals:', event.locals.user);
+	console.log('Session in locals:', event.locals.session);
+
 	// Resolve the request with the updated event
 	return resolve(event);
 };
