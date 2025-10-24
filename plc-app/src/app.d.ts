@@ -5,6 +5,12 @@ declare global {
 		interface Locals {
 			user: import("lucia").User | null;
 			session: import("lucia").Session | null;
+			userWithPerms: {
+				id: string;
+				username: string;
+				roles: string[];
+				permisos: string[];
+			} | null;
 		  }
 		// interface Error {}
 		// interface Locals {}

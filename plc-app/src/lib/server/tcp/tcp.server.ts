@@ -1,7 +1,6 @@
-// src/lib/server/tcp.service.ts
+// src/lib/server/tcp/tcp.server.ts
 import net from 'net';
-import { broadcast } from '../ws/ws.server';
-
+import { handlePLCData } from '../plc/plc-handler';
 
 export function startTcpServer() {
 	const HOST = '0.0.0.0';
@@ -20,16 +19,24 @@ export function startTcpServer() {
 		};
 		const heartbeatInterval = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
 
-		socket.on('data', (data) => {
+		socket.on('data', async (data) => {
 			const bytes = Array.from(data);
-			console.log('📥 Datos PLC:', bytes);
-			broadcast({ type: 'tcp-data', payload: bytes });
+			console.log('📥 Datos PLC recibidos:', bytes);
+			
+			// Process the PLC data through the handler
+			await handlePLCData(bytes);
 		});
 
 		const cleanup = () => clearInterval(heartbeatInterval);
 		socket.on('end', cleanup);
-		socket.on('error', cleanup);
-		socket.on('close', cleanup);
+		socket.on('error', (err) => {
+			console.error('❌ Error TCP:', err);
+			cleanup();
+		});
+		socket.on('close', () => {
+			console.log('🔌 Cliente TCP desconectado');
+			cleanup();
+		});
 	});
 
 	server.listen(PORT, HOST, () => {

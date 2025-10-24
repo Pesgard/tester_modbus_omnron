@@ -1,1099 +1,980 @@
-# DOCUMENTO MAESTRO — Sistema de Tests en Tiempo Real (SvelteKit)
+# 🏭 Sistema de Trazabilidad y Control de Calidad Industrial
 
-> **Propósito:** documento técnico maestro para el equipo. Contiene: visión, arquitectura, modelo de datos, contratos (endpoints y eventos), flujo de desarrollo, scripts de inicialización, consideraciones de concurrencia y seguridad, y un runbook operativo.
+Sistema integral de monitoreo y control de calidad para líneas de producción con integración PLC, desarrollado con SvelteKit 5 y diseñado para uso en dispositivos táctiles industriales.
 
----
+## 📋 Tabla de Contenidos
 
-## 1 — Resumen ejecutivo
-
-Este proyecto es un **monolito LAN** que recibe resultados de pruebas desde un PLC, procesa cada pieza como parte de un **lote**, almacena resultados e imágenes (FTP), notifica al frontend en **tiempo real** y controla el PLC (p. ej. señal de detener cuando el lote alcanzó su meta). El objetivo es un MVP funcional y robusto: trazabilidad completa (historial), roles y permisos, UI operativa y confiabilidad en la lógica de lotes.
-
-**Stack propuesto:** SvelteKit 2 + Skeleton UI, Node.js integrado, PostgreSQL + Prisma, autenticación con Lucia (adaptador Prisma), WebSockets (socket.io preferido por facilidad), `basic-ftp` para FTP.
-
----
-
-## 2 — Requisitos funcionales y no funcionales
-
-### Funcionales
-
-* Recepción de arrays de bits por PLC: p. ej. `[0,0,0,1,0,1]`.
-* Registro de cada pieza y su resultado dentro de un lote.
-* Lotes con `max_piezas_ok` que, al cumplirse, cierran el lote y envían señal al PLC para detener nuevas ejecuciones.
-* Historial/auditoría de acciones (quién hizo qué y cuándo).
-* Roles y permisos personalizables (visor, operador, editor, admin y roles custom).
-* Visualización en tiempo real en frontend mediante WebSockets.
-* Lectura de imágenes desde servidor FTP y proxy seguro por el backend.
-
-### No funcionales
-
-* Latencia de notificación: < 300ms (ideal <100ms) desde que se procesa la pieza hasta que el front recibe el evento.
-* Alta confiabilidad en conteo de piezas (evitar doble conteo por reenvíos del PLC).
-* Seguridad: sesiones HTTP-only, verificación de permisos en endpoints y sockets, protección de endpoints FTP.
-* Operabilidad: fácil seed inicial, logs accesibles y runbook para arrancar en planta.
+- [Descripción General](#-descripción-general)
+- [Contrato de Comunicación PLC](#-contrato-de-comunicación-plc)
+- [Tecnologías Utilizadas](#-tecnologías-utilizadas)
+- [Arquitectura del Sistema](#-arquitectura-del-sistema)
+- [Estructura del Proyecto](#-estructura-del-proyecto)
+- [Instalación](#-instalación)
+- [Configuración](#-configuración)
+- [Base de Datos](#-base-de-datos)
+- [Sistema de Permisos](#-sistema-de-permisos)
+- [Módulos del Sistema](#-módulos-del-sistema)
+- [API y WebSockets](#-api-y-websockets)
+- [Despliegue](#-despliegue)
 
 ---
 
-## 3 — Arquitectura (diagrama)
+## 🎯 Descripción General
 
-```mermaid
-flowchart LR
-  PLC[PLC]
-  PLCAdapter[PLC Adapter
-(Modbus/TCP or TCP listener)]
-  UseCases[Use Cases / Application
-(registrarPieza, cerrarLote...) ]
-  Repos[Repos (Prisma)]
-  WSHub[WebSocket Hub (socket.io)]
-  FTPAdapter[FTP Adapter]
-  Frontend[SvelteKit + SkeletonUI]
-  Hooks[hooks.server.ts
-(Auth & permissions)]
-  Signals[Queue/Buffer]
+Sistema de trazabilidad y control de calidad diseñado para monitorear en tiempo real la producción de cables industriales. El sistema recibe datos desde un PLC mediante comunicación TCP, procesa información de cada pieza producida, captura imágenes de defectos y mantiene un registro completo de la producción.
 
-  PLC --> PLCAdapter --> Signals --> UseCases
-  UseCases --> Repos
-  UseCases --> WSHub --> Frontend
-  UseCases --> PLCAdapter:::control
-  FTPAdapter --> Repos
-  Frontend --> Hooks --> UseCases
+### Características Principales
 
-  classDef control stroke:#f66,stroke-width:2px
+✅ **Monitoreo en Tiempo Real**
+- Comunicación bidireccional con PLC vía TCP Socket
+- Actualización instantánea de métricas de producción
+- WebSocket para actualizaciones en vivo en el frontend
+
+✅ **Control de Calidad**
+- Detección automática de defectos
+- Captura y almacenamiento de imágenes de fallos
+- Clasificación de tipos de falla
+- Trazabilidad completa de cada pieza
+
+✅ **Sistema de Gestión**
+- Control de lotes de producción
+- Gestión de recetas (modelos de cables)
+- Administración de usuarios y roles
+- Exportación de datos a CSV
+
+✅ **Interfaz Táctil Optimizada**
+- Diseño responsive para dispositivos táctiles
+- Botones grandes (≥48px) según estándares WCAG
+- Modales informativos en lugar de alertas nativas
+- Iconografía profesional con Lucide Svelte
+
+✅ **Seguridad y Permisos**
+- Sistema RBAC (Role-Based Access Control) granular
+- Autenticación con Lucia Auth
+- 71 permisos específicos por módulo
+- 4 roles predefinidos (Admin, Manager, Operador, Viewer)
+
+---
+
+## 🔌 Contrato de Comunicación PLC
+
+### Protocolo de Comunicación
+
+**Tipo:** TCP Socket  
+**Puerto:** 3000 (configurable)  
+**Formato:** Array de 8 enteros (0-9)  
+**Dirección:** Unidireccional (PLC → Backend)
+
+### Estructura del Array de Bits
+
+El PLC envía un array de 8 enteros por cada pieza producida:
+
+```javascript
+[índice_0, índice_1, índice_2, índice_3, índice_4, índice_5, índice_6, índice_7]
 ```
 
-**Notas:**
+### Tabla de Contrato de Bits
 
-* `PLCAdapter` normaliza el paquete entrante y delega a un caso de uso.
-* `Signals` actúa como buffer/batcher si el PLC emite ráfagas.
-* `UseCases` son el corazón de la lógica: atómicos y testeables.
-* `WSHub` mantiene las conexiones socket y asegura autenticación por handshake.
+| Índice | Campo | Descripción | Valores Posibles | Notas |
+|--------|-------|-------------|------------------|-------|
+| **0** | `general_status` | Estado global del sistema | `0` = Detenido<br>`1` = Activo<br>`2` = Error<br>`3` = Mantenimiento | Indica el estado general de la línea |
+| **1** | `piece_status` | Estado de la pieza | `0` = NOK (Falla)<br>`1` = OK (Aprobada) | Resultado final de la prueba |
+| **2** | `failure_code` | Código de falla | `0` = Sin falla<br>`1` = Test hipot falla<br>`2` = Etiqueta incorrecta<br>`3` = Modelo incorrecto<br>`4` = Terminal incorrecta<br>`5-9` = Reservado | Solo válido si `piece_status = 0` |
+| **3** | `model_id` | ID de receta/modelo | `1-9` | Referencia a la receta activa en BD |
+| **4** | `camera_status` | Estado inspección visual | `0` = OK<br>`1` = Defecto visual detectado | Indica si se capturó imagen |
+| **5** | `electrical_status` | Estado prueba eléctrica | `0` = OK<br>`1` = Falla eléctrica | Resultado de test hipot |
+| **6** | `ready_flag` | Bandera de datos válidos | `0` = Datos incompletos<br>`1` = Paquete válido | Solo procesar si `ready_flag = 1` |
+| **7** | `reserved` | Campo reservado | `0-9` | Para futuras expansiones |
+
+### Códigos de Falla Detallados
+
+#### 0 - Sin Falla
+✅ **Descripción:** La pieza pasó todas las pruebas correctamente.  
+**Acción:** Incrementar contador de piezas OK.  
+**Imagen:** No se captura.
+
+#### 1 - Test Hipot Falla
+⚠️ **Descripción:** Falla en la prueba de aislamiento eléctrico (test hipot).  
+**Causa Común:** 
+- Aislamiento insuficiente
+- Cortocircuito entre conductores
+- Daño en el recubrimiento
+**Acción:** Capturar imagen del terminal, pausar producción.  
+**Imagen:** Terminal eléctrico con identificación de falla.
+
+#### 2 - Etiqueta Incorrecta
+⚠️ **Descripción:** La etiqueta no coincide con el modelo esperado.  
+**Causa Común:**
+- Etiqueta mal colocada
+- Código QR/barcode incorrecto
+- Falta de etiqueta
+**Acción:** Capturar imagen de la etiqueta, pausar producción.  
+**Imagen:** Vista de la etiqueta y código.
+
+#### 3 - Modelo Incorrecto
+⚠️ **Descripción:** El `model_id` no corresponde a ninguna receta activa en la base de datos.  
+**Causa Común:**
+- PLC configurado con modelo no registrado
+- Receta no creada en el sistema
+- Error de sincronización
+**Acción:** Marcar como error crítico, notificar a supervisor.  
+**Imagen:** Foto general del ensamble.
+
+#### 4 - Terminal Incorrecta
+⚠️ **Descripción:** El tipo de terminal no coincide con la especificación de la receta.  
+**Causa Común:**
+- Terminal mal instalado
+- Tipo de ferrul incorrecto
+- Orientación incorrecta
+**Acción:** Capturar imagen del terminal, pausar producción.  
+**Imagen:** Close-up del terminal defectuoso.
+
+#### 5-9 - Reservado
+🔒 **Descripción:** Códigos reservados para futuras implementaciones.  
+**Acción:** Registrar como "Falla desconocida", notificar a desarrollo.
+
+### Ejemplos de Paquetes
+
+#### Ejemplo 1: Pieza Correcta
+```javascript
+[1, 1, 0, 3, 0, 0, 1, 0]
+```
+**Interpretación:**
+- Sistema activo (`general_status = 1`)
+- Pieza OK (`piece_status = 1`)
+- Sin falla (`failure_code = 0`)
+- Modelo/Receta ID 3 (`model_id = 3`)
+- Inspección visual OK (`camera_status = 0`)
+- Prueba eléctrica OK (`electrical_status = 0`)
+- Datos válidos (`ready_flag = 1`)
+- Campo reservado (`reserved = 0`)
+
+**Resultado:** ✅ Pieza aprobada, continuar producción.
 
 ---
 
-## 4 — Modelo de datos (ER) y esquema
+#### Ejemplo 2: Falla en Test Hipot
+```javascript
+[1, 0, 1, 3, 0, 1, 1, 0]
+```
+**Interpretación:**
+- Sistema activo (`general_status = 1`)
+- Pieza NOK (`piece_status = 0`)
+- Falla hipot (`failure_code = 1`)
+- Modelo/Receta ID 3 (`model_id = 3`)
+- Inspección visual OK (`camera_status = 0`)
+- Prueba eléctrica falló (`electrical_status = 1`)
+- Datos válidos (`ready_flag = 1`)
 
-**ER actualizado:**
+**Resultado:** ❌ Pieza rechazada, se esperará imagen del defecto, producción pausada.
+
+---
+
+#### Ejemplo 3: Etiqueta Incorrecta con Imagen
+```javascript
+[1, 0, 2, 5, 1, 0, 1, 0]
+```
+**Interpretación:**
+- Sistema activo (`general_status = 1`)
+- Pieza NOK (`piece_status = 0`)
+- Etiqueta incorrecta (`failure_code = 2`)
+- Modelo/Receta ID 5 (`model_id = 5`)
+- Defecto visual detectado (`camera_status = 1`)
+- Prueba eléctrica OK (`electrical_status = 0`)
+- Datos válidos (`ready_flag = 1`)
+
+**Resultado:** ❌ Pieza rechazada, sistema esperará imagen de la etiqueta, producción pausada automáticamente.
+
+---
+
+#### Ejemplo 4: Datos No Válidos (Ignorar)
+```javascript
+[1, 0, 2, 3, 1, 0, 0, 0]
+```
+**Interpretación:**
+- `ready_flag = 0` → Datos incompletos o en proceso
+
+**Resultado:** ⏭️ Paquete descartado, no se procesa ni se registra.
+
+---
+
+### Flujo de Procesamiento
 
 ```mermaid
-erDiagram
-    USUARIOS ||--o{ ROLES : tiene
-    ROLES ||--o{ PERMISOS_ROL : asigna
-    PERMISOS ||--o{ PERMISOS_ROL : contiene
-
-    LOTES ||--o{ PIEZAS : contiene
-    LOTES ||--o{ HISTORIAL : registra
-    USUARIOS ||--o{ HISTORIAL : ejecuta
-
-    PIEZAS }o--|| IMAGENES : referencia
-
-    USUARIOS {
-        uuid id PK
-        string username
-        string email
-        string hash_password
-        bool active
-        timestamptz created_at
-    }
-
-    ROLES {
-        uuid id PK
-        string name
-        string description
-    }
-
-    PERMISOS {
-        uuid id PK
-        string key
-        string description
-    }
-
-    PERMISOS_ROL {
-        uuid id PK
-        uuid role_id FK
-        uuid permiso_id FK
-    }
-
-    LOTES {
-        uuid id PK
-        string name
-        int max_piezas_ok
-        int piezas_ok
-        int piezas_fallas
-        string estado "OPEN | CLOSED | PAUSED"
-        timestamptz started_at
-        timestamptz closed_at
-        uuid created_by FK
-    }
-
-    PIEZAS {
-        uuid id PK
-        uuid lote_id FK
-        jsonb resultado_bits
-        bool ok
-        int indice
-        varchar imagen_path
-        timestamptz processed_at
-        uuid processed_by FK
-    }
-
-    IMAGENES {
-        uuid id PK
-        uuid pieza_id FK
-        varchar path
-        varchar thumbnail_path
-        timestamptz uploaded_at
-    }
-
-    HISTORIAL {
-        uuid id PK
-        uuid lote_id FK
-        uuid pieza_id FK
-        uuid user_id FK
-        string action_key
-        jsonb meta
-        timestamptz created_at
-    }
+graph TD
+    A[PLC envía array de 8 bits] --> B{ready_flag = 1?}
+    B -->|No| C[Descartar paquete]
+    B -->|Sí| D[Validar estructura]
+    D --> E{piece_status?}
+    E -->|1 OK| F[Registrar pieza OK]
+    E -->|0 NOK| G{failure_code > 0?}
+    G -->|Sí| H[Registrar falla]
+    H --> I{camera_status = 1?}
+    I -->|Sí| J[Esperar imagen]
+    I -->|No| K[Continuar producción]
+    J --> L[Procesar imagen]
+    L --> M[Pausar producción automáticamente]
+    M --> N[Mostrar modal de error]
+    F --> K
+    N --> O[Usuario revisa]
+    O --> P[Reiniciar manualmente]
 ```
 
-### 4.1 — Prisma schema (versión actualizada)
+### Configuración del PLC
 
+Para integrar correctamente el PLC con el sistema:
+
+1. **IP del Backend:** Configurar en PLC (por defecto: `localhost`)
+2. **Puerto TCP:** `3000` (configurable en `TCP_PORT` env)
+3. **Timeout:** Recomendado 5000ms
+4. **Retry:** 3 intentos antes de marcar como error
+5. **Frecuencia:** Enviar solo cuando `ready_flag = 1`
+
+### Manejo de Imágenes
+
+Cuando `failure_code > 0`:
+
+1. **PLC dispara captura** de imagen del defecto
+2. **Backend recibe imagen** vía FTP o filesystem watch
+3. **Renombrado automático:** `{model_id}_{failureCode}_{timestamp}.jpg`
+4. **Ubicación:** `/static/images/lotes/{nombre_lote}/`
+5. **Base de datos:** Se vincula a la pieza y lote correspondiente
+6. **Notificación:** WebSocket emite evento `image-processed`
+7. **UI:** Modal muestra imagen y detalles del error
+8. **Producción:** Se pausa automáticamente
+
+---
+
+## 🚀 Tecnologías Utilizadas
+
+### Frontend
+- **SvelteKit 5** - Framework full-stack
+- **Svelte 5** - UI reactivo con runes (`$state`, `$derived`, `$effect`)
+- **Tailwind CSS 4** - Estilos utility-first
+- **Skeleton UI** - Componentes y sistema de diseño
+- **Lucide Svelte** - Iconografía profesional
+- **date-fns** - Formateo de fechas
+
+### Backend
+- **Node.js** - Runtime
+- **SvelteKit API Routes** - Endpoints REST
+- **WebSocket (ws)** - Comunicación en tiempo real
+- **TCP Socket (net)** - Comunicación con PLC
+- **Chokidar** - File watcher para imágenes
+
+### Base de Datos
+- **PostgreSQL** / **SQLite** - Base de datos relacional
+- **Prisma ORM** - Gestor de base de datos
+- **Lucia Auth** - Sistema de autenticación
+
+### Herramientas de Desarrollo
+- **TypeScript** - Tipado estático
+- **Prettier** - Formateo de código
+- **ESLint** - Linting
+- **Vite** - Build tool
+
+---
+
+## 🏗️ Arquitectura del Sistema
+
+### Capas del Sistema
+
+```
+┌─────────────────────────────────────────────┐
+│         Frontend (SvelteKit UI)              │
+│  - Dashboard de Producción                   │
+│  - Gestión de Lotes y Recetas                │
+│  - Historial y Reportes                      │
+└─────────────┬───────────────────────────────┘
+              │ HTTP/WebSocket
+┌─────────────▼───────────────────────────────┐
+│      Backend (SvelteKit API Routes)          │
+│  - Endpoints REST                            │
+│  - WebSocket Server (puerto 4000)            │
+│  - Sistema de Permisos                       │
+└─────────────┬───────────────────────────────┘
+              │
+      ┌───────┴────────┐
+      │                │
+┌─────▼─────┐   ┌──────▼──────┐
+│ TCP Server │   │ File Watcher│
+│ (puerto    │   │ (Chokidar)  │
+│  3000)     │   │             │
+└─────┬──────┘   └──────┬──────┘
+      │                 │
+┌─────▼─────────────────▼──────┐
+│          PLC Industrial       │
+│  - Envía datos de piezas      │
+│  - Dispara captura de imágenes│
+└───────────────────────────────┘
+```
+
+### Flujo de Datos en Tiempo Real
+
+```
+PLC → TCP (puerto 3000) → Parser → Handler → WebSocket (puerto 4000) → UI
+                                       ↓
+                                   Database
+                                       ↓
+                                 Image Watcher → Process → Storage
+```
+
+---
+
+## 📁 Estructura del Proyecto
+
+```
+plc-app/
+├── prisma/
+│   ├── schema.prisma        # Esquema de base de datos
+│   └── seed.js              # Datos iniciales (usuarios, roles, permisos, recetas)
+│
+├── src/
+│   ├── lib/
+│   │   ├── components/
+│   │   │   └── sidebar/     # Navegación lateral
+│   │   ├── server/
+│   │   │   ├── auth/        # Sistema de autenticación y guards
+│   │   │   ├── plc/
+│   │   │   │   ├── plc-parser.ts       # Parseo de datos PLC
+│   │   │   │   ├── plc-handler.ts      # Lógica de negocio PLC
+│   │   │   │   └── image-handler.ts    # Procesamiento de imágenes
+│   │   │   ├── tcp/
+│   │   │   │   └── tcp.server.ts       # Servidor TCP
+│   │   │   ├── ws/
+│   │   │   │   └── ws.server.ts        # Servidor WebSocket
+│   │   │   └── startup.ts              # Inicialización de servicios
+│   │   └── prisma.ts        # Cliente de Prisma
+│   │
+│   ├── routes/
+│   │   ├── (auth)/
+│   │   │   ├── login/       # Página de login
+│   │   │   └── signup/      # Página de registro
+│   │   ├── dashboard/
+│   │   │   ├── production/  # Módulo de Producción
+│   │   │   ├── history/     # Módulo de Historial
+│   │   │   │   └── [id]/    # Detalles de lote
+│   │   │   ├── management/  # Módulo de Gestión
+│   │   │   │   ├── recetas/
+│   │   │   │   ├── lotes/
+│   │   │   │   ├── usuarios/
+│   │   │   │   └── roles/
+│   │   │   └── +layout.svelte
+│   │   └── api/
+│   │       ├── plc/
+│   │       │   ├── +server.ts    # GET status
+│   │       │   ├── start/        # POST iniciar lote
+│   │       │   └── stop/         # DELETE detener producción
+│   │       └── images/
+│   │           └── [loteId]/     # GET imágenes de lote
+│   │
+│   ├── hooks.server.ts      # Hooks de SvelteKit (auth, permisos, servicios)
+│   └── app.d.ts             # Tipos de TypeScript
+│
+├── static/
+│   └── images/
+│       └── lotes/           # Imágenes organizadas por lote
+│
+├── .env                     # Variables de entorno
+├── package.json
+├── tailwind.config.ts
+├── vite.config.ts
+└── tsconfig.json
+```
+
+---
+
+## 💿 Instalación
+
+### Requisitos Previos
+
+- **Node.js** 18+ 
+- **pnpm** (recomendado) o npm
+- **PostgreSQL** 14+ o SQLite
+- **Git**
+
+### Pasos de Instalación
+
+1. **Clonar el repositorio**
+```bash
+git clone <repository-url>
+cd plc-app
+```
+
+2. **Instalar dependencias**
+```bash
+pnpm install
+```
+
+3. **Configurar variables de entorno**
+```bash
+cp .env.example .env
+```
+
+Editar `.env` con tus configuraciones:
+```env
+# Database
+DATABASE_URL="postgresql://user:password@localhost:5432/plc_db"
+
+# TCP Server (PLC Communication)
+TCP_PORT=3000
+
+# WebSocket Server (Real-time Updates)
+WS_PORT=4000
+
+# Image Directories
+PLC_IMAGE_DIR="/path/to/ftp/plc_images"
+IMAGES_DIR="/path/to/static/images/lotes"
+
+# Application
+PUBLIC_APP_NAME="Control de Calidad Industrial"
+```
+
+4. **Configurar base de datos**
+```bash
+# Generar cliente de Prisma
+pnpm prisma generate
+
+# Ejecutar migraciones
+pnpm prisma db push
+
+# Seed de datos iniciales
+pnpm db:seed
+```
+
+5. **Iniciar en desarrollo**
+```bash
+pnpm dev
+```
+
+La aplicación estará disponible en `http://localhost:5173`
+
+### Usuarios por Defecto (después del seed)
+
+| Usuario | Contraseña | Rol | Permisos |
+|---------|-----------|-----|----------|
+| admin | admin123 | Admin | Todos (*) |
+| manager | manager123 | Manager | Gestión y visualización |
+| operador | operador123 | Operador | Producción y lectura |
+| viewer | viewer123 | Viewer | Solo lectura |
+
+⚠️ **Importante:** Cambiar estas contraseñas en producción.
+
+---
+
+## ⚙️ Configuración
+
+### Configuración del PLC
+
+1. **Dirección IP del Backend:** Configurar en el PLC
+2. **Puerto TCP:** `3000` (o el configurado en `TCP_PORT`)
+3. **Formato de datos:** Array de 8 enteros separados por comas
+4. **Timeout:** 5000ms recomendado
+
+### Configuración de Imágenes (FTP/Filesystem)
+
+El sistema soporta dos métodos para recibir imágenes:
+
+#### Opción 1: FTP Server
+```env
+PLC_IMAGE_DIR="/home/ftp/plc_images"
+```
+El PLC sube imágenes vía FTP a este directorio.
+
+#### Opción 2: Shared Filesystem
+```env
+PLC_IMAGE_DIR="/mnt/shared/plc_images"
+```
+El PLC y el backend comparten un filesystem.
+
+El sistema automáticamente:
+1. Detecta nuevas imágenes (chokidar)
+2. Renombra: `{model_id}_{failureCode}_{timestamp}.jpg`
+3. Mueve a: `/static/images/lotes/{lote_name}/`
+4. Actualiza base de datos
+5. Emite evento WebSocket
+
+---
+
+## 🗄️ Base de Datos
+
+### Modelos Principales
+
+#### **User**
 ```prisma
-generator client {
-  provider = "prisma-client-js"
+model User {
+  id            String    @id @default(uuid())
+  username      String    @unique
+  password_hash String
+  role_id       String
+  created_at    DateTime  @default(now())
 }
+```
 
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+#### **Receta** (Modelo de Cable)
+```prisma
+model Receta {
+  id                    String  @id @default(uuid())
+  ppn                   String  @unique
+  item_description      String
+  cantidad_conductores  Int
+  L1                    String  # Tipo de terminal L1
+  L2                    String  # Tipo de terminal L2
+  L3                    String?
+  N                     String?
+  T                     String?
 }
+```
 
-model Usuario {
-  id           String   @id @default(uuid())
-  luciaId      String?  @unique
-  username     String   @unique
-  email        String   @unique
-  hashPassword String   @map("hash_password")
-  active       Boolean  @default(true)
-  createdAt    DateTime @default(now()) @map("created_at")
-  
-  // Relaciones
-  roles        UsuarioRol[]
-  historial    Historial[]
-  lotesCreados Lote[]      @relation("LoteCreator")
-  piezasProcesadas Pieza[] @relation("PiezaProcessor")
-
-  @@map("usuarios")
-}
-
-model Rol {
-  id          String @id @default(uuid())
-  name        String @unique
-  description String?
-  
-  // Relaciones
-  permisos PermisosRol[]
-  usuarios UsuarioRol[]
-
-  @@map("roles")
-}
-
-model Permiso {
-  id          String @id @default(uuid())
-  key         String @unique
-  description String?
-  
-  // Relaciones
-  roles PermisosRol[]
-
-  @@map("permisos")
-}
-
-model PermisosRol {
-  id        String @id @default(uuid())
-  roleId    String @map("role_id")
-  permisoId String @map("permiso_id")
-  
-  // Relaciones
-  rol     Rol     @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permiso Permiso @relation(fields: [permisoId], references: [id], onDelete: Cascade)
-
-  @@unique([roleId, permisoId])
-  @@map("permisos_rol")
-}
-
-model UsuarioRol {
-  id        String @id @default(uuid())
-  usuarioId String @map("usuario_id")
-  rolId     String @map("rol_id")
-  
-  // Relaciones
-  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  rol     Rol     @relation(fields: [rolId], references: [id], onDelete: Cascade)
-  
-  @@unique([usuarioId, rolId])
-  @@map("usuarios_roles")
-}
-
+#### **Lote** (Lote de Producción)
+```prisma
 model Lote {
-  id           String    @id @default(uuid())
-  name         String?
-  maxPiezasOk  Int       @default(100) @map("max_piezas_ok")
-  piezasOk     Int       @default(0) @map("piezas_ok")
-  piezasFallas Int       @default(0) @map("piezas_fallas")
-  estado       String    @default("OPEN") // OPEN | CLOSED | PAUSED
-  startedAt    DateTime  @default(now()) @map("started_at")
-  closedAt     DateTime? @map("closed_at")
-  createdBy    String?   @map("created_by")
+  id            String     @id @default(uuid())
+  name          String     @unique
+  receta_id     String
+  max_piezas_ok Int
+  piezas_ok     Int        @default(0)
+  piezas_fallas Int        @default(0)
+  estado        EstadoLote @default(OPEN)
+  started_at    DateTime   @default(now())
+  closed_at     DateTime?
+  created_by    String
   
-  // Relaciones
-  creator   Usuario?    @relation("LoteCreator", fields: [createdBy], references: [id])
+  receta    Receta      @relation(fields: [receta_id], references: [id])
   piezas    Pieza[]
-  historial Historial[]
-
-  @@index([estado])
-  @@index([startedAt])
-  @@map("lotes")
-}
-
-model Pieza {
-  id            String   @id @default(uuid())
-  loteId        String   @map("lote_id")
-  resultadoBits Json     @map("resultado_bits")
-  ok            Boolean
-  indice        Int?
-  imagenPath    String?  @map("imagen_path") @db.VarChar(255)
-  processedAt   DateTime @default(now()) @map("processed_at")
-  processedBy   String?  @map("processed_by")
-  
-  // Relaciones
-  lote      Lote      @relation(fields: [loteId], references: [id], onDelete: Cascade)
-  processor Usuario?  @relation("PiezaProcessor", fields: [processedBy], references: [id])
   imagenes  Imagen[]
-  historial Historial[]
-
-  @@index([loteId])
-  @@index([processedAt])
-  @@index([ok])
-  @@map("piezas")
 }
 
+enum EstadoLote {
+  OPEN
+  CLOSED
+  PAUSED
+}
+```
+
+#### **Pieza** (Pieza Individual)
+```prisma
+model Pieza {
+  id              String   @id @default(uuid())
+  lote_id         String
+  indice          Int
+  ok              Boolean
+  resultado_bits  Int[]
+  imagen_path     String
+  processed_at    DateTime @default(now())
+  
+  lote Lote @relation(fields: [lote_id], references: [id])
+}
+```
+
+#### **Imagen** (Imagen de Defecto)
+```prisma
 model Imagen {
-  id            String   @id @default(uuid())
-  piezaId       String   @map("pieza_id")
-  path          String   @db.VarChar(500)
-  thumbnailPath String?  @map("thumbnail_path") @db.VarChar(500)
-  uploadedAt    DateTime @default(now()) @map("uploaded_at")
+  id             String   @id @default(uuid())
+  lote_id        String
+  pieza_id       String?
+  path           String
+  tipo_falla     String
+  metadata       Json?
+  thumbnail_path String   @default("")
+  uploaded_at    DateTime @default(now())
   
-  // Relaciones
-  pieza Pieza @relation(fields: [piezaId], references: [id], onDelete: Cascade)
-
-  @@index([piezaId])
-  @@map("imagenes")
-}
-
-model Historial {
-  id        String   @id @default(uuid())
-  loteId    String?  @map("lote_id")
-  piezaId   String?  @map("pieza_id")
-  userId    String?  @map("user_id")
-  actionKey String   @map("action_key")
-  meta      Json?
-  createdAt DateTime @default(now()) @map("created_at")
-  
-  // Relaciones
-  lote  Lote?    @relation(fields: [loteId], references: [id])
-  pieza Pieza?   @relation(fields: [piezaId], references: [id])
-  user  Usuario? @relation(fields: [userId], references: [id])
-
-  @@index([loteId])
-  @@index([piezaId])
-  @@index([userId])
-  @@index([createdAt])
-  @@index([actionKey])
-  @@map("historial")
+  lote  Lote   @relation(fields: [lote_id], references: [id])
+  pieza Pieza? @relation(fields: [pieza_id], references: [id])
 }
 ```
 
-**Cambios principales respecto al esquema original:**
-
-* **Eliminación de tabla intermedia `UsuarioRol`**: ahora es una relación directa muchos-a-muchos entre `Usuario` y `Rol`.
-* **Simplificación de permisos**: tabla `PermisosRol` en lugar de `RolesPermiso` para mejor legibilidad.
-* **Relación directa Pieza-Imagen**: eliminación de tabla `EventoExterno` y simplificación de relaciones.
-* **Campos `processedBy`**: agregado a `Pieza` para trazabilidad de quién procesó cada pieza.
-* **Nombres de tabla en snake_case**: para mejor compatibilidad con convenciones PostgreSQL.
-* **Índices optimizados**: agregados para consultas frecuentes (estados, fechas, relaciones).
-
-### 4.2 — SQL inicial (resumen)
-
-```sql
--- Crear extensión UUID si no existe
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- Tabla usuarios
-CREATE TABLE usuarios (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  lucia_id text UNIQUE,
-  username text UNIQUE NOT NULL,
-  email text UNIQUE NOT NULL,
-  hash_password text NOT NULL,
-  active boolean DEFAULT true,
-  created_at timestamptz DEFAULT now()
-);
-
--- Tabla roles
-CREATE TABLE roles (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name text UNIQUE NOT NULL,
-  description text
-);
-
--- Tabla permisos
-CREATE TABLE permisos (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  key text UNIQUE NOT NULL,
-  description text
-);
-
--- Tabla permisos_rol
-CREATE TABLE permisos_rol (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  role_id uuid NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
-  permiso_id uuid NOT NULL REFERENCES permisos(id) ON DELETE CASCADE,
-  UNIQUE(role_id, permiso_id)
-);
-
--- Tabla usuarios_roles
-CREATE TABLE usuarios_roles (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  usuario_id uuid NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
-  rol_id uuid NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
-  UNIQUE(usuario_id, rol_id)
-);
-
--- Tabla lotes
-CREATE TABLE lotes (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name text,
-  max_piezas_ok int NOT NULL DEFAULT 100,
-  piezas_ok int NOT NULL DEFAULT 0,
-  piezas_fallas int NOT NULL DEFAULT 0,
-  estado text NOT NULL DEFAULT 'OPEN',
-  started_at timestamptz DEFAULT now(),
-  closed_at timestamptz,
-  created_by uuid REFERENCES usuarios(id)
-);
-
--- Tabla piezas
-CREATE TABLE piezas (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  lote_id uuid NOT NULL REFERENCES lotes(id) ON DELETE CASCADE,
-  resultado_bits jsonb NOT NULL,
-  ok boolean NOT NULL,
-  indice int,
-  imagen_path varchar(255),
-  processed_at timestamptz DEFAULT now(),
-  processed_by uuid REFERENCES usuarios(id)
-);
-
--- Tabla imagenes
-CREATE TABLE imagenes (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  pieza_id uuid NOT NULL REFERENCES piezas(id) ON DELETE CASCADE,
-  path varchar(500) NOT NULL,
-  thumbnail_path varchar(500),
-  uploaded_at timestamptz DEFAULT now()
-);
-
--- Tabla historial
-CREATE TABLE historial (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  lote_id uuid REFERENCES lotes(id),
-  pieza_id uuid REFERENCES piezas(id),
-  user_id uuid REFERENCES usuarios(id),
-  action_key text NOT NULL,
-  meta jsonb,
-  created_at timestamptz DEFAULT now()
-);
-
--- Índices principales
-CREATE INDEX idx_lotes_estado ON lotes(estado);
-CREATE INDEX idx_lotes_started_at ON lotes(started_at);
-CREATE INDEX idx_piezas_lote_id ON piezas(lote_id);
-CREATE INDEX idx_piezas_processed_at ON piezas(processed_at);
-CREATE INDEX idx_piezas_ok ON piezas(ok);
-CREATE INDEX idx_imagenes_pieza_id ON imagenes(pieza_id);
-CREATE INDEX idx_historial_lote_id ON historial(lote_id);
-CREATE INDEX idx_historial_pieza_id ON historial(pieza_id);
-CREATE INDEX idx_historial_user_id ON historial(user_id);
-CREATE INDEX idx_historial_created_at ON historial(created_at);
-CREATE INDEX idx_historial_action_key ON historial(action_key);
-```
-
----
-
-## 5 — Contratos: API REST y eventos WebSocket
-
-### 5.1 — Endpoints REST (SvelteKit endpoints `src/routes/api/...`)
-
-* `POST /api/auth/login` — body `{ username, password }` → crea sesión (cookie httpOnly).
-* `POST /api/auth/logout` — cierra sesión.
-* `GET /api/lotes` — lista lotes (filtros: estado, dateRange, page).
-* `POST /api/lotes` — crea lote (body: `{ name, maxPiezasOk }`).
-* `GET /api/lotes/:id` — detalle lote (incluye piezas paginadas).
-* `POST /api/lotes/:id/close` — cierra lote (permiso `lote.cerrar`).
-* `GET /api/piezas/:id/image` — proxy seguro para la imagen (chequea permiso y devuelve stream desde FTP o cache).
-* `GET /api/historial` — lista de eventos de historial (filtros).
-
-**Autorización:** todos los endpoints salvo `login` usan `hooks.server.ts` para verificar sesión y permisos.
-
-### 5.2 — Eventos WebSocket (nombres y payloads)
-
-**Conexión:** handshake requiere cookie de sesión o token en query.
-
-**Eventos emitidos por el servidor:**
-
-* `pieza:procesada` — `{ piezaId, loteId, ok, resultadoBits, processedAt, processedBy }`.
-* `lote:actualizado` — `{ loteId, piezasOk, piezasFallas, estado }`.
-* `lote:cerrado` — `{ loteId, closedAt }`.
-* `system:alert` — `{ level, message }` (alerts operativas).
-
-**Eventos que cliente puede enviar:**
-
-* `lote:pause` — `{ loteId }` (operador con permiso).
-* `lote:resume` — `{ loteId }`.
-* `request:loteDetalle` — `{ loteId }` (server responde con `lote:detalle`).
-
-**Consideración:** el servidor debe validar permisos en cada evento entrante.
-
----
-
-## 6 — Use cases principales y ejemplos de implementación
-
-### 6.1 — `registrarPieza(loteId, resultadoBits, meta)`
-
-**Responsabilidad:** guardar pieza, actualizar contadores del lote, guardar historial, emitir evento WebSocket, y cerrar lote si corresponde.
-
-**Pseudocódigo (TypeScript / Prisma):**
-
-```ts
-async function registrarPieza({ 
-  loteId, 
-  resultadoBits, 
-  processedBy,
-  imagenPath 
-}: {
-  loteId: string;
-  resultadoBits: boolean[];
-  processedBy?: string;
-  imagenPath?: string;
-}) {
-  return await prisma.$transaction(async (tx) => {
-    // Validar que el lote existe y está abierto
-    const lote = await tx.lote.findUnique({ where: { id: loteId } });
-    if (!lote || lote.estado !== 'OPEN') {
-      throw new Error('Lote no disponible para procesamiento');
-    }
-
-    // Evaluar resultado
-    const ok = evaluateResultado(resultadoBits);
-
-    // Crear pieza
-    const pieza = await tx.pieza.create({ 
-      data: {
-        loteId,
-        resultadoBits,
-        ok,
-        imagenPath,
-        processedBy,
-        processedAt: new Date(),
-      }
-    });
-
-    // Actualizar contadores del lote
-    const updateData = ok 
-      ? { piezasOk: { increment: 1 } }
-      : { piezasFallas: { increment: 1 } };
-    
-    const loteActualizado = await tx.lote.update({ 
-      where: { id: loteId }, 
-      data: updateData,
-      include: { _count: { select: { piezas: true } } }
-    });
-
-    // Registrar en historial
-    await tx.historial.create({ 
-      data: {
-        loteId,
-        piezaId: pieza.id,
-        userId: processedBy,
-        actionKey: 'pieza.registrada',
-        meta: { 
-          resultadoBits, 
-          ok,
-          indice: loteActualizado._count.piezas 
-        }
-      }
-    });
-
-    // Verificar si se debe cerrar el lote
-    let loteCerrado = false;
-    if (loteActualizado.piezasOk >= loteActualizado.maxPiezasOk) {
-      await tx.lote.update({ 
-        where: { id: loteId }, 
-        data: { 
-          estado: 'CLOSED', 
-          closedAt: new Date() 
-        } 
-      });
-      loteCerrado = true;
-    }
-
-    return { pieza, loteActualizado, loteCerrado };
-  });
-}
-```
-
-### 6.2 — `cerrarLote(loteId, userId)`
-
-```ts
-async function cerrarLote(loteId: string, userId?: string) {
-  return await prisma.$transaction(async (tx) => {
-    const lote = await tx.lote.update({
-      where: { id: loteId },
-      data: { 
-        estado: 'CLOSED', 
-        closedAt: new Date() 
-      }
-    });
-
-    // Registrar en historial
-    await tx.historial.create({
-      data: {
-        loteId,
-        userId,
-        actionKey: 'lote.cerrado_manual',
-        meta: { 
-          piezasOk: lote.piezasOk,
-          piezasFallas: lote.piezasFallas 
-        }
-      }
-    });
-
-    return lote;
-  });
-}
-```
-
----
-
-## 7 — Integración con Lucia (autenticación)
-
-### 7.1 — Estrategia
-
-* Usar Lucia con adaptador Prisma almacenando `luciaId` en `Usuario`.
-* Guardar credenciales (hash) con bcrypt en el campo `hashPassword`.
-* `hooks.server.ts` leerá la sesión (cookie httpOnly) y resolverá `locals.user` con permisos cargados desde DB.
-
-### 7.2 — `hooks.server.ts` (esqueleto actualizado)
-
-```ts
-// hooks.server.ts
-import { lucia } from '$lib/server/auth/lucia';
-import { prisma } from '$lib/server/prisma';
-
-export const handle = async ({ event, resolve }) => {
-  const sessionId = event.cookies.get(lucia.sessionCookieName);
-  
-  if (!sessionId) {
-    event.locals.user = null;
-    event.locals.session = null;
-    return resolve(event);
-  }
-
-  const { session, user } = await lucia.validateSession(sessionId);
-  
-  if (session && session.fresh) {
-    const sessionCookie = lucia.createSessionCookie(session.id);
-    event.cookies.set(sessionCookie.name, sessionCookie.value, sessionCookie.attributes);
-  }
-  
-  if (!session) {
-    const sessionCookie = lucia.createBlankSessionCookie();
-    event.cookies.set(sessionCookie.name, sessionCookie.value, sessionCookie.attributes);
-  }
-
-  // Cargar usuario completo con permisos
-  if (user) {
-    const fullUser = await prisma.usuario.findUnique({
-      where: { luciaId: user.id },
-      include: {
-        roles: {
-          include: {
-            rol: {
-              include: {
-                permisos: {
-                  include: {
-                    permiso: true
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    });
-    
-    event.locals.user = fullUser;
-  }
-
-  event.locals.session = session;
-  return resolve(event);
-};
-
-// Helper para verificar permisos
-export function hasPermission(user: any, permisoKey: string): boolean {
-  if (!user) return false;
-  
-  return user.roles.some((userRol: any) => 
-    userRol.rol.permisos.some((rolPermiso: any) => 
-      rolPermiso.permiso.key === permisoKey
-    )
-  );
-}
-```
-
----
-
-## 8 — WebSocket Hub (esqueleto actualizado)
-
-```ts
-// wsHub.ts
-import { Server as IOServer } from 'socket.io';
-import { lucia } from '$lib/server/auth/lucia';
-import { prisma } from '$lib/server/prisma';
-
-let io: IOServer | null = null;
-
-export function initWs(server: any) {
-  if (io) return io;
-  
-  io = new IOServer(server, {
-    cors: {
-      origin: process.env.NODE_ENV === 'development' ? '*' : false,
-      credentials: true
-    }
-  });
-
-  io.use(async (socket, next) => {
-    try {
-      const cookie = socket.handshake.headers.cookie;
-      if (!cookie) throw new Error('No session cookie');
-      
-      // Parsear cookie de sesión
-      const sessionId = parseCookie(cookie)[lucia.sessionCookieName];
-      if (!sessionId) throw new Error('No session ID');
-
-      const { session, user } = await lucia.validateSession(sessionId);
-      if (!session || !user) throw new Error('Invalid session');
-
-      // Cargar usuario con permisos
-      const fullUser = await prisma.usuario.findUnique({
-        where: { luciaId: user.id },
-        include: {
-          roles: {
-            include: {
-              rol: {
-                include: {
-                  permisos: {
-                    include: {
-                      permiso: true
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      });
-
-      socket.data.user = fullUser;
-      next();
-    } catch (error) {
-      next(new Error('Authentication failed'));
-    }
-  });
-
-  io.on('connection', (socket) => {
-    console.log(`Usuario ${socket.data.user.username} conectado`);
-    
-    // Unirse a room del usuario
-    socket.join(`user:${socket.data.user.id}`);
-    
-    // Manejar eventos del cliente
-    socket.on('lote:pause', async (data) => {
-      if (!hasPermission(socket.data.user, 'lote.pausar')) {
-        socket.emit('error', { message: 'Sin permisos' });
-        return;
-      }
-      // Lógica para pausar lote
-    });
-
-    socket.on('disconnect', () => {
-      console.log(`Usuario ${socket.data.user.username} desconectado`);
-    });
-  });
-
-  return io;
-}
-
-export function emitPiezaProcesada(payload: any) {
-  io?.emit('pieza:procesada', payload);
-}
-
-export function emitLoteActualizado(payload: any) {
-  io?.emit('lote:actualizado', payload);
-}
-
-export function emitLoteCerrado(payload: any) {
-  io?.emit('lote:cerrado', payload);
-}
-```
-
----
-
-## 9 — Adaptadores: PLC y FTP
-
-### 9.1 — PLC Adapter (actualizado)
-
-```ts
-// src/lib/server/adapters/plcAdapter.ts
-import { registrarPieza } from '$lib/server/usecases/registrarPieza';
-
-export class PLCAdapter {
-  private isConnected = false;
-  
-  async connect() {
-    // Implementar conexión según protocolo (Modbus/TCP, TCP raw, etc.)
-    if (process.env.NODE_ENV === 'development') {
-      this.startMockMode();
-    } else {
-      // Conexión real al PLC
-    }
-  }
-
-  private startMockMode() {
-    console.log('Iniciando modo mock del PLC');
-    
-    setInterval(async () => {
-      const mockData = {
-        resultadoBits: this.generateMockBits(),
-        timestamp: new Date().toISOString(),
-        loteId: await this.getCurrentLoteId()
-      };
-      
-      await this.processPLCData(mockData);
-    }, 5000); // Cada 5 segundos en modo mock
-  }
-
-  private generateMockBits(): boolean[] {
-    // Generar array aleatorio de bits para testing
-    return Array.from({ length: 6 }, () => Math.random() > 0.3);
-  }
-
-  private async getCurrentLoteId(): Promise<string | null> {
-    // Obtener el lote abierto actual
-    const lote = await prisma.lote.findFirst({
-      where: { estado: 'OPEN' },
-      orderBy: { startedAt: 'desc' }
-    });
-    return lote?.id || null;
-  }
-
-  async processPLCData(data: any) {
-    try {
-      if (!data.loteId) {
-        console.warn('No hay lote activo para procesar pieza');
-        return;
-      }
-
-      const result = await registrarPieza({
-        loteId: data.loteId,
-        resultadoBits: data.resultadoBits,
-        processedBy: null // Sistema/PLC
-      });
-
-      // Emitir eventos WebSocket
-      emitPiezaProcesada({
-        piezaId: result.pieza.id,
-        loteId: result.pieza.loteId,
-        ok: result.pieza.ok,
-        resultadoBits: result.pieza.resultadoBits,
-        processedAt: result.pieza.processedAt
-      });
-
-      emitLoteActualizado({
-        loteId: result.loteActualizado.id,
-        piezasOk: result.loteActualizado.piezasOk,
-        piezasFallas: result.loteActualizado.piezasFallas,
-        estado: result.loteActualizado.estado
-      });
-
-      if (result.loteCerrado) {
-        emitLoteCerrado({
-          loteId: result.loteActualizado.id,
-          closedAt: result.loteActualizado.closedAt
-        });
-        
-        await this.sendStopSignal();
-      }
-
-    } catch (error) {
-      console.error('Error procesando datos del PLC:', error);
-    }
-  }
-
-  async sendStopSignal() {
-    console.log('Enviando señal de parada al PLC');
-    // Implementar según protocolo del PLC
-  }
-
-  async sendResumeSignal() {
-    console.log('Enviando señal de reanudación al PLC');
-    // Implementar según protocolo del PLC
-  }
-}
-```
-
-### 9.2 — FTP Adapter (actualizado)
-
-```ts
-// src/lib/server/adapters/ftpAdapter.ts
-import { Client as FTPClient } from 'basic-ftp';
-import { createReadStream, existsSync } from 'fs';
-import { join } from 'path';
-
-export class FTPAdapter {
-  private client: FTPClient;
-  private config = {
-    host: process.env.FTP_HOST || 'localhost',
-    user: process.env.FTP_USER || 'ftpuser',
-    password: process.env.FTP_PASS || 'ftppass',
-    port: parseInt(process.env.FTP_PORT || '21')
-  };
-
-  constructor() {
-    this.client = new FTPClient();
-  }
-
-  async connect() {
-    try {
-      await this.client.access(this.config);
-      console.log('Conectado al servidor FTP');
-    } catch (error) {
-      console.error('Error conectando al FTP:', error);
-      throw error;
-    }
-  }
-
-  async disconnect() {
-    this.client.close();
-  }
-
-  async downloadImage(remotePath: string, localPath: string): Promise<void> {
-    try {
-      await this.client.downloadTo(localPath, remotePath);
-    } catch (error) {
-      console.error(`Error descargando imagen ${remotePath}:`, error);
-      throw error;
-    }
-  }
-
-  async getImageStream(imagePath: string): Promise<NodeJS.ReadableStream> {
-    try {
-      // Primero intentar cache local
-      const localCachePath = join(process.cwd(), 'cache', 'images', imagePath);
-      
-      if (existsSync(localCachePath)) {
-        return createReadStream(localCachePath);
-      }
-
-      // Si no está en cache, descargar desde FTP
-      await this.connect();
-      const writable = require('fs').createWriteStream(localCachePath);
-      await this.client.downloadTo(writable, imagePath);
-      await this.disconnect();
-
-      return createReadStream(localCachePath);
-    } catch (error) {
-      console.error(`Error obteniendo stream de imagen ${imagePath}:`, error);
-      throw error;
-    }
-  }
-
-  async listImages(directory: string = '/'): Promise<string[]> {
-    try {
-      await this.connect();
-      const files = await this.client.list(directory);
-      await this.disconnect();
-      
-      return files
-        .filter(file => file.isFile && /\.(jpg|jpeg|png|bmp)$/i.test(file.name))
-        .map(file => file.name);
-    } catch (error) {
-      console.error('Error listando imágenes:', error);
-      throw error;
-    }
-  }
-}
-```
-
-## 10 — Manejo de concurrencia y consistencia
-
-* **Transacciones:** usar `prisma.$transaction` para operaciones compuestas (insert pieza + update lote + historial).
-* **Idempotencia:** `externalId` y tabla `EventoExterno` para marcar processed events.
-* **Bloqueo optimista:** opcional, agregar campo `version INT` a `lote` y usar `WHERE version = x` en update para evitar overwrites si necesitas.
-* **Race conditions en conteo:** `UPDATE ... SET piezas_ok = piezas_ok + 1 WHERE id = ?` dentro transacción está bien con Postgres.
-
----
-
-## 11 — Tests (plan)
-
-* **Unit tests:** use-cases con mocks de repositorios (Vitest).
-* **Integration tests:** Prisma con una DB de test (sqlite en memoria o Postgres docker), endpoints REST.
-* **E2E tests:** Playwright — escenarios: login, creación lote, simulación PLC, ver notificaciones en dashboard.
-* **Tests de rendimiento:** simular ráfaga de PLC y medir latencia de entrega.
-
----
-
-## 12 — Observabilidad y logs
-
-* **Logging:** `pino` o `winston`, con niveles `info|warn|error|debug`.
-* **Eventos críticos:** guardarlos en `historial` + logs.
-* **Métricas:** opcionalmente exponer métricas Prometheus: tasa de piezas procesadas, latencia WS, % de piezas OK.
-
----
-
-## 13 — Seguridad
-
-* Cookies httpOnly + SameSite Lax/Strict según configuración de red.
-* Validar permisos en cada endpoint y en handshake del socket.
-* Sanear inputs (no ejecutar comandos desde payloads del PLC sin validar).
-* Si FTP no soporta TLS, considerar VPN o red de planta segregada.
-
----
-
-## 14 — Operación / Runbook (arranque rápido)
-
-### Requisitos locales
-
-* Node 18+ (LTS), PostgreSQL 14+, acceso a red del PLC y servidor FTP.
-
-### Variables de entorno (ejemplo)
-
-```
-DATABASE_URL=postgresql://user:pass@db:5432/tests
-PORT=3000
-LUCIA_SECRET=asecreta
-PLc_HOST=192.168.0.10
-PLC_PORT=502
-FTP_HOST=ftp.planta.local
-FTP_USER=ftpuser
-FTP_PASS=ftppass
-NODE_ENV=development
-```
-
-### Comandos básicos
+### Migraciones
 
 ```bash
-# instalar
-npm install
-# prisma generate
-npx prisma generate
-# crear migración y aplicar
-npx prisma migrate dev --name init
-# seed
-node prisma/seed.js
-# correr en dev
-npm run dev
+# Crear nueva migración
+pnpm prisma migrate dev --name nombre_migracion
+
+# Aplicar migraciones
+pnpm prisma migrate deploy
+
+# Resetear base de datos (⚠️ CUIDADO: Borra todos los datos)
+pnpm prisma migrate reset
+
+# Ver estado de migraciones
+pnpm prisma migrate status
 ```
-
-### Arranque del sistema en modo producción (sugerido)
-
-* usar PM2 / systemd para mantener proceso Node y logs rotados.
-* exportar variables de entorno y levantar `npm run start`.
 
 ---
 
-## 15 — Seeds y migraciones (ejemplo rápido `prisma/seed.ts`)
+## 🔐 Sistema de Permisos
 
-```ts
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+### Estructura de Permisos
 
-async function main() {
-  const adminRole = await prisma.rol.upsert({ where: { name: 'admin' }, update: {}, create: { name: 'admin', description: 'Administrador' } });
-  const viewerRole = await prisma.rol.upsert({ where: { name: 'visor' }, update: {}, create: { name: 'visor', description: 'Solo ver' } });
+El sistema utiliza RBAC (Role-Based Access Control) con 71 permisos granulares organizados en 3 módulos:
 
-  await prisma.permiso.upsert({ where: { key: 'lote.cerrar' }, update: {}, create: { key: 'lote.cerrar', description: 'Cerrar lotes' } });
+#### **Módulo Production** (22 permisos)
+```
+production.*
+├── production.ver
+├── production.dashboard.ver
+├── production.metrics.ver
+├── production.control.*
+│   ├── production.control.start
+│   ├── production.control.stop
+│   └── production.control.pause
+└── production.images.*
+    ├── production.images.ver
+    └── production.images.descargar
+```
 
-  // crear usuario admin (contraseña se gestiona con Lucia)
-  await prisma.usuario.upsert({ where: { username: 'admin' }, update: {}, create: { username: 'admin', email: 'admin@local' } });
+#### **Módulo History** (24 permisos)
+```
+history.*
+├── history.ver
+├── history.lotes.*
+│   ├── history.lotes.ver
+│   ├── history.lotes.detalles
+│   └── history.lotes.exportar
+└── history.reportes.*
+    ├── history.reportes.generar
+    └── history.reportes.exportar
+```
+
+#### **Módulo Management** (25 permisos)
+```
+management.*
+├── management.ver
+├── management.recetas.*
+│   ├── management.recetas.ver
+│   ├── management.recetas.crear
+│   ├── management.recetas.editar
+│   └── management.recetas.eliminar
+├── management.lotes.*
+│   ├── management.lotes.ver
+│   ├── management.lotes.crear
+│   ├── management.lotes.editar
+│   └── management.lotes.cerrar
+├── management.usuarios.*
+│   ├── management.usuarios.ver
+│   ├── management.usuarios.crear
+│   ├── management.usuarios.editar
+│   └── management.usuarios.eliminar
+└── management.roles.*
+    ├── management.roles.ver
+    ├── management.roles.crear
+    ├── management.roles.editar
+    └── management.roles.eliminar
+```
+
+### Roles Predefinidos
+
+| Rol | Permisos | Descripción |
+|-----|----------|-------------|
+| **Admin** | `*` (todos) | Acceso total al sistema |
+| **Manager** | Gestión completa | Puede gestionar recetas, lotes, usuarios y ver todo |
+| **Operador** | Producción + Lectura | Puede operar la línea y ver información |
+| **Viewer** | Solo lectura | Puede ver pero no modificar |
+
+### Uso en el Código
+
+#### Server-side (guards)
+```typescript
+import { requirePermission } from '$lib/server/auth/guards';
+
+export const load: PageServerLoad = async (event) => {
+  requirePermission(event, 'production.control.start');
+  // ...
+};
+```
+
+#### Client-side (UI condicional)
+```svelte
+<script>
+  const canControl = $derived(
+    user?.permisos.includes('*') ||
+    user?.permisos.includes('production.control.start')
+  );
+</script>
+
+{#if canControl}
+  <button onclick={startProduction}>Iniciar Producción</button>
+{/if}
+```
+
+---
+
+## 📦 Módulos del Sistema
+
+### 1. Producción (`/dashboard/production`)
+
+**Funcionalidades:**
+- Visualización en tiempo real del estado de la línea
+- Selección e inicio de lotes de producción
+- Métricas en vivo (OK, NOK, eficiencia, precisión)
+- Tabla de piezas recientes
+- Visualización de datos crudos del PLC
+- Auto-pausa en caso de error
+- Modal de error con imagen del defecto
+
+**Permisos Requeridos:**
+- Ver: `production.ver`
+- Iniciar: `production.control.start`
+- Detener: `production.control.stop`
+
+### 2. Historial (`/dashboard/history`)
+
+**Funcionalidades:**
+- Lista de lotes completados/pausados
+- Filtros por estado y búsqueda
+- Estadísticas por lote (OK, NOK, precisión)
+- Exportación masiva a CSV
+- Vista detallada de lote:
+  - Información completa
+  - Galería de imágenes de defectos
+  - Tabla de todas las piezas
+  - Gráficos de fallas por tipo
+  - Exportación individual a CSV
+
+**Permisos Requeridos:**
+- Ver lista: `history.ver`
+- Ver detalles: `history.lotes.detalles`
+- Exportar: `history.lotes.exportar`
+
+### 3. Gestión (`/dashboard/management`)
+
+#### 3.1 Recetas
+- CRUD completo de recetas/modelos
+- Especificación de conductores y terminales
+- Asignación de PPN (Part Number)
+
+**Permisos:** `management.recetas.*`
+
+#### 3.2 Lotes
+- Creación de lotes de producción
+- Asignación de receta y objetivo
+- Cierre manual de lotes
+- Edición de parámetros
+
+**Permisos:** `management.lotes.*`
+
+#### 3.3 Usuarios
+- Gestión de usuarios del sistema
+- Asignación de roles
+- Cambio de contraseñas
+- Activación/desactivación
+
+**Permisos:** `management.usuarios.*`
+
+#### 3.4 Roles y Permisos
+- Creación de roles personalizados
+- Asignación granular de permisos
+- Gestión de permisos por módulo
+
+**Permisos:** `management.roles.*`
+
+---
+
+## 🌐 API y WebSockets
+
+### REST API Endpoints
+
+#### PLC Status
+```http
+GET /api/plc
+Response: {
+  status: 'active' | 'idle' | 'error',
+  lote: { ... } | null,
+  availableLotes: [...]
 }
+```
 
-main().catch(console.error).finally(() => process.exit());
+#### Iniciar Lote
+```http
+POST /api/plc/start
+Body: { loteId: string }
+Response: { success: true, lote: { ... } }
+```
+
+#### Detener Producción
+```http
+DELETE /api/plc/stop
+Response: { success: true }
+```
+
+#### Obtener Imágenes de Lote
+```http
+GET /api/images/{loteId}?failureCode=1
+Response: [{ path, tipo_falla, uploaded_at, metadata }]
+```
+
+### WebSocket Events (Puerto 4000)
+
+#### Eventos del Servidor → Cliente
+
+**plc-data**
+```json
+{
+  "type": "plc-data",
+  "payload": {
+    "rawData": [1, 1, 0, 3, 0, 0, 1, 0],
+    "pieceStatus": "OK",
+    "failureType": "Sin falla",
+    "lineStatus": "RUNNING"
+  }
+}
+```
+
+**piece-created**
+```json
+{
+  "type": "piece-created",
+  "payload": {
+    "loteId": "uuid",
+    "piezaId": "uuid",
+    "index": 15,
+    "ok": true,
+    "failureCode": 0
+  }
+}
+```
+
+**awaiting-image**
+```json
+{
+  "type": "awaiting-image",
+  "payload": {
+    "loteId": "uuid",
+    "piezaId": "uuid",
+    "piezaIndex": 15,
+    "failureCode": 2
+  }
+}
+```
+
+**image-processed**
+```json
+{
+  "type": "image-processed",
+  "payload": {
+    "loteId": "uuid",
+    "loteName": "LOTE-001",
+    "piezaIndex": 15,
+    "failureCode": 2,
+    "imagePath": "/images/lotes/LOTE-001/3_2_1234567890.jpg"
+  }
+}
+```
+
+**lot-started / lot-stopped / lot-completed**
+```json
+{
+  "type": "lot-started",
+  "payload": {
+    "id": "uuid",
+    "name": "LOTE-001",
+    "recetaId": "uuid"
+  }
+}
 ```
 
 ---
 
-## 16 — Decisiones abiertas / preguntas para el equipo
+## 🚀 Despliegue
 
-* ¿Qué protocolo exactamente usa el PLC? (Modbus/TCP, TCP raw, OPC UA). Esto cambia la implementación del adapter.
-* Retención de datos: ¿guardar todas las piezas indefinidamente o archivar cada X meses?
-* Políticas de backup y disaster recovery.
-* ¿Se necesitará acceso remoto (VPN/TLS) o todo queda en LAN?
+### Build de Producción
+
+```bash
+# Generar build optimizado
+pnpm build
+
+# Preview del build
+pnpm preview
+```
+
+### Despliegue con Docker
+
+```dockerfile
+# Dockerfile
+FROM node:18-alpine AS builder
+WORKDIR /app
+COPY package.json pnpm-lock.yaml ./
+RUN npm install -g pnpm && pnpm install --frozen-lockfile
+COPY . .
+RUN pnpm prisma generate
+RUN pnpm build
+
+FROM node:18-alpine
+WORKDIR /app
+COPY --from=builder /app/build ./build
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./
+EXPOSE 3000 4000
+CMD ["node", "build"]
+```
+
+```bash
+# Build imagen
+docker build -t plc-app .
+
+# Ejecutar contenedor
+docker run -p 3000:3000 -p 4000:4000 \
+  -e DATABASE_URL="postgresql://..." \
+  -e TCP_PORT=3000 \
+  -e WS_PORT=4000 \
+  plc-app
+```
+
+### Variables de Entorno de Producción
+
+```env
+NODE_ENV=production
+DATABASE_URL=postgresql://user:pass@host:5432/db
+TCP_PORT=3000
+WS_PORT=4000
+PLC_IMAGE_DIR=/app/ftp/plc_images
+IMAGES_DIR=/app/static/images/lotes
+PUBLIC_APP_NAME="Sistema de Calidad"
+```
+
+### Consideraciones de Producción
+
+1. **Base de Datos:**
+   - Usar PostgreSQL en producción (no SQLite)
+   - Configurar backups automáticos
+   - Índices en tablas grandes
+
+2. **Seguridad:**
+   - Cambiar contraseñas por defecto
+   - Usar HTTPS (certificado SSL)
+   - Configurar firewall para puertos 3000 y 4000
+   - Variables de entorno seguras
+
+3. **Performance:**
+   - Configurar PM2 o similar para auto-restart
+   - Límite de conexiones WebSocket
+   - Compresión de imágenes
+   - CDN para assets estáticos
+
+4. **Monitoreo:**
+   - Logs estructurados
+   - Alertas de errores
+   - Métricas de uptime
+   - Dashboard de sistema
 
 ---
 
-## 17 — Roadmap (sprints de ejemplo)
+## 📄 Licencia
 
-**Sprint 0 (infra + setup)** — 1 semana
-
-* Crear repo, instalar toolchain, prisma schema, migración, seed, Lucia init.
-
-**Sprint 1 (dominio + infra local)** — 2 semanas
-
-* Implementar use-cases `registrarPieza`, `crearLote`, `cerrarLote`.
-* Repositorios Prisma y tests unitarios.
-
-**Sprint 2 (realtime + PLC mock)** — 2 semanas
-
-* Implementar wsHub y PLC mock, UI dashboard en tiempo real.
-
-**Sprint 3 (FTP + imágenes + permisos)** — 2 semanas
-
-* FTP adapter, image proxy, sistema de roles y permisos.
-
-**Sprint 4 (optimización + e2e + hardening)** — 2 semanas
-
-* Tests E2E, concurrencia, logging, runbook y despliegue.
+Proyecto propietario - Todos los derechos reservados © 2025
 
 ---
 
-## 18 — Artefactos entregables
+## 👥 Soporte
 
-* Repositorio con estructura y ejemplos.
-* Prisma schema y migraciones.
-* Seed script para datos iniciales.
-* Use-cases TS con cobertura unitaria mínima.
-* WebSocket Hub y ejemplo de cliente Svelte store.
-* Endpoints REST principales y UI básica (Dashboard, Lotes, Detalle de lote).
+Para soporte técnico o consultas:
+- **Email:** soporte@empresa.com
+- **Documentación:** Ver archivos en `/docs`
+- **Issues:** Reportar en el sistema de gestión interno
 
 ---
 
-## 19 — Próximos pasos inmediatos (acción)
+**Versión:** 1.0.0  
+**Última actualización:** Enero 2025  
+**Desarrollado con:** ❤️ y ☕
 
-1. Confirmar protocolo PLC y acceder a su documentación.
-2. Levantar DB local y correr `npx prisma migrate dev` + `node prisma/seed.js`.
-3. Implementar `registrarPieza` con PLC mock y testear flujo completo hasta que el dashboard reciba eventos.
-4. Integrar Lucia y crear usuario admin.
-
----

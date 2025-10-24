@@ -1,11 +1,12 @@
 // src/hooks.server.ts
 import type { Handle } from '@sveltejs/kit';
-import { startServices } from '$lib/server/startup.js';
 import { lucia } from '$lib/server/auth/Auth';
+import { prisma } from '$lib/prisma';
+import { initializeServers } from '$lib/server/startup';
 
 // Start tcp and WebSocket servers
 // and FTP watcher when the server starts
-startServices();
+initializeServers();
 
 /**
  * Handles incoming requests and manages user session validation and cookies.
@@ -27,6 +28,7 @@ startServices();
  * - If the session is valid and fresh, creates a new session cookie and updates it in the response.
  * - If the session is invalid, creates a blank session cookie and updates it in the response.
  * - Sets `event.locals.user` and `event.locals.session` with the validated user and session data.
+ * - Loads user roles and permissions for authorization.
  * - Resolves the request with the updated event object.
  */
 export const handle: Handle = async ({ event, resolve }) => {
@@ -38,6 +40,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	if (!sessionId) {
 		event.locals.session = null;
 		event.locals.user = null;
+		event.locals.userWithPerms = null;
 		return resolve(event);
 	}
 
@@ -67,9 +70,48 @@ export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.user = user;
 	event.locals.session = session;
 
-	console.log('User in locals:', event.locals.user);
-	console.log('Session in locals:', event.locals.session);
+	// Load user with roles and permissions if authenticated
+	if (user) {
+		const userWithRolesAndPerms = await prisma.user.findUnique({
+			where: { id: user.id },
+			include: {
+				roles: {
+					include: {
+						role: {
+							include: {
+								permisosRol: {
+									include: {
+										permiso: true
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		});
+
+		if (userWithRolesAndPerms) {
+			// Extract roles and permissions
+			const roles = userWithRolesAndPerms.roles.map(ur => ur.role.name);
+			const permisos = userWithRolesAndPerms.roles.flatMap(ur =>
+				ur.role.permisosRol.map(pr => pr.permiso.key)
+			);
+
+			event.locals.userWithPerms = {
+				id: userWithRolesAndPerms.id,
+				username: userWithRolesAndPerms.username,
+				roles,
+				permisos
+			};
+		} else {
+			event.locals.userWithPerms = null;
+		}
+	} else {
+		event.locals.userWithPerms = null;
+	}
 
 	// Resolve the request with the updated event
 	return resolve(event);
 };
+
