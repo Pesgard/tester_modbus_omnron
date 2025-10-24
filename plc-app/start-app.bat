@@ -1,5 +1,5 @@
 @echo off
-cd /d C:\ruta\a\tu\proyecto
-start "" /B cmd /c "npm run start"
-timeout /t 5 > nul
-start chrome --kiosk http://localhost:3000
+cd /d C:\Users\axme_\Documents\tester_modbus_omnron-dev\tester_modbus_omnron-dev\plc-app
+echo Iniciando aplicación en segundo plano...
+cscript //NoLogo start-app-hidden.vbs
+exit
