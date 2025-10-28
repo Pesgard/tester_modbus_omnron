@@ -1,5 +1,8 @@
 @echo off
-cd /d C:\Users\axme_\Documents\tester_modbus_omnron-dev\tester_modbus_omnron-dev\plc-app
-echo Iniciando aplicación en segundo plano...
-cscript //NoLogo start-app-hidden.vbs
-exit
+cd /d C:\ruta\a\tu\proyecto
+set ORIGIN=http://localhost:3000
+echo Iniciando servidor...
+start "" /B cmd /c "node build/index.js"
+timeout /t 5 > nul
+echo Abriendo navegador en modo kiosko...
+start chrome --kiosk http://localhost:3000

@@ -8,7 +8,7 @@
 import { prisma } from '$lib/prisma';
 import { broadcast } from '../ws/ws.server';
 import { processPLCData } from './plc-parser';
-import { processPlcImage } from './image-handler';
+import { setActiveModelId } from '../tcp/tcp.server';
 
 /**
  * Tracks the current active lot for production
@@ -56,6 +56,9 @@ export function clearActiveLot() {
 	const previousLot = currentActiveLot;
 	console.log('[PLC Handler] Active lot cleared');
 	currentActiveLot = null;
+	
+	// Stop sending model_id to PLC
+	setActiveModelId(null);
 	
 	// Broadcast lot stopped event
 	if (previousLot) {

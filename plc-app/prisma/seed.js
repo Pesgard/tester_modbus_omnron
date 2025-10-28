@@ -379,6 +379,7 @@ async function main() {
     console.log('\n📦 Creando recetas...');
     const recetas = [
       {
+        model_id: 1, // ID para el PLC
         ppn: '1020746',
         cable_np: '664030001',
         quantity: 16.0,
@@ -390,6 +391,7 @@ async function main() {
         activa: true
       },
       {
+        model_id: 2, // ID para el PLC
         ppn: '1020746-02',
         cable_np: '664030001',
         quantity: 16.5,
@@ -401,6 +403,7 @@ async function main() {
         activa: true
       },
       {
+        model_id: 3, // ID para el PLC
         ppn: '1020747',
         cable_np: '664030001',
         quantity: 16.5,
@@ -412,6 +415,7 @@ async function main() {
         activa: true
       },
       {
+        model_id: 4, // ID para el PLC (Terminal en L1)
         ppn: '683950001',
         cable_np: '664030001',
         quantity: 17.5,
@@ -423,6 +427,7 @@ async function main() {
         activa: true
       },
       {
+        model_id: 5, // ID para el PLC (Terminal en L1)
         ppn: '694030001',
         cable_np: '664030001',
         quantity: 20.666,
@@ -434,6 +439,7 @@ async function main() {
         activa: true
       },
       {
+        model_id: 6, // ID para el PLC
         ppn: '717140001',
         cable_np: '664030001',
         quantity: 20.67,
@@ -445,6 +451,7 @@ async function main() {
         activa: true
       },
       {
+        model_id: 7, // ID para el PLC (4 conductores)
         ppn: '698330001',
         cable_np: '698340001',
         quantity: 20.2,

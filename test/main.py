@@ -102,6 +102,8 @@ class PLCClient:
     def __init__(self):
         self.socket = None
         self.connected = False
+        self.receive_thread = None
+        self.stop_receive = False
 
     def connect(self):
         """Conectar al servidor TCP"""
@@ -110,6 +112,12 @@ class PLCClient:
             self.socket.settimeout(5)
             self.socket.connect((TCP_HOST, TCP_PORT))
             self.connected = True
+            
+            # Iniciar hilo de recepción
+            self.stop_receive = False
+            self.receive_thread = threading.Thread(target=self._receive_packets, daemon=True)
+            self.receive_thread.start()
+            
             return True, f"✅ Conectado a {TCP_HOST}:{TCP_PORT}"
         except Exception as e:
             self.connected = False
@@ -119,12 +127,64 @@ class PLCClient:
         """Desconectar del servidor"""
         if self.socket:
             try:
-                self.socket.close()
+                self.stop_receive = True
                 self.connected = False
+                self.socket.close()
+                if self.receive_thread:
+                    self.receive_thread.join(timeout=1)
                 return True, "🔌 Desconectado correctamente"
             except:
                 pass
         return False, "Ya estaba desconectado"
+
+    def _receive_packets(self):
+        """Hilo para recibir paquetes del servidor"""
+        self.socket.settimeout(1.0)
+        buffer = b''
+        
+        while not self.stop_receive and self.connected:
+            try:
+                data = self.socket.recv(1024)
+                if not data:
+                    log_message("🔴 Servidor cerró la conexión", Colors.RED)
+                    self.connected = False
+                    break
+                
+                buffer += data
+                
+                # Procesar paquetes completos de 8 bytes
+                while len(buffer) >= 8:
+                    packet_bytes = buffer[:8]
+                    buffer = buffer[8:]
+                    
+                    packet = list(packet_bytes)
+                    self._display_received_packet(packet)
+                    
+            except socket.timeout:
+                continue
+            except Exception as e:
+                if self.connected and not self.stop_receive:
+                    log_message(f"❌ Error al recibir: {str(e)}", Colors.RED)
+                break
+
+    def _display_received_packet(self, packet):
+        """Mostrar paquete recibido en consola"""
+        timestamp = datetime.now().strftime('%H:%M:%S.%f')[:-3]
+        print(f"\n{Colors.CYAN}{'═' * 64}")
+        print(f"📥 PAQUETE RECIBIDO DEL SERVIDOR [{timestamp}]")
+        print(f"{'═' * 64}{Colors.ENDC}")
+        print(f"{Colors.BOLD}Array:{Colors.ENDC} {packet}")
+        print(f"{Colors.BOLD}Bytes:{Colors.ENDC} {[hex(b) for b in packet]}")
+        print(f"\n{Colors.YELLOW}Decodificación:{Colors.ENDC}")
+        print(f"  [0] General Status:    {GENERAL_STATUS.get(packet[0], 'Desconocido')} ({packet[0]})")
+        print(f"  [1] Piece Status:      {'OK' if packet[1] == 0 else 'NOK'} ({packet[1]})")
+        print(f"  [2] Failure Code:      {FAILURE_CODES.get(packet[2], 'Desconocido')} ({packet[2]})")
+        print(f"  [3] Model ID:          {packet[3]}")
+        print(f"  [4] Camera Status:     {'OK' if packet[4] == 0 else 'Falla visual'} ({packet[4]})")
+        print(f"  [5] Electrical Status: {'OK' if packet[5] == 0 else 'Falla eléctrica'} ({packet[5]})")
+        print(f"  [6] Ready Flag:        {'✅ Válido' if packet[6] == 1 else '🚫 Ignorar'} ({packet[6]})")
+        print(f"  [7] Reserved:          {packet[7]}")
+        print(f"{Colors.CYAN}{'═' * 64}{Colors.ENDC}\n")
 
     def send_packet(self, packet):
         """Enviar paquete de datos como bytes binarios"""

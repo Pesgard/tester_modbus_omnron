@@ -60,6 +60,7 @@ CREATE TABLE "public"."UserRole" (
 -- CreateTable
 CREATE TABLE "public"."Receta" (
     "id" TEXT NOT NULL,
+    "model_id" INTEGER NOT NULL,
     "ppn" TEXT NOT NULL,
     "cable_np" TEXT NOT NULL,
     "quantity" DOUBLE PRECISION NOT NULL,
@@ -111,9 +112,12 @@ CREATE TABLE "public"."Pieza" (
 -- CreateTable
 CREATE TABLE "public"."Imagen" (
     "id" TEXT NOT NULL,
-    "pieza_id" TEXT NOT NULL,
+    "lote_id" TEXT NOT NULL,
+    "pieza_id" TEXT,
     "path" TEXT NOT NULL,
-    "thumbnail_path" TEXT NOT NULL,
+    "tipo_falla" TEXT NOT NULL,
+    "metadata" JSONB,
+    "thumbnail_path" TEXT NOT NULL DEFAULT '',
     "uploaded_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Imagen_pkey" PRIMARY KEY ("id")
@@ -146,6 +150,9 @@ CREATE UNIQUE INDEX "PermisoRol_roleId_permisoId_key" ON "public"."PermisoRol"("
 
 -- CreateIndex
 CREATE UNIQUE INDEX "UserRole_userId_roleId_key" ON "public"."UserRole"("userId", "roleId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Receta_model_id_key" ON "public"."Receta"("model_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Receta_ppn_key" ON "public"."Receta"("ppn");
@@ -181,7 +188,10 @@ ALTER TABLE "public"."Pieza" ADD CONSTRAINT "Pieza_lote_id_fkey" FOREIGN KEY ("l
 ALTER TABLE "public"."Pieza" ADD CONSTRAINT "Pieza_processed_by_fkey" FOREIGN KEY ("processed_by") REFERENCES "public"."User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Imagen" ADD CONSTRAINT "Imagen_pieza_id_fkey" FOREIGN KEY ("pieza_id") REFERENCES "public"."Pieza"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."Imagen" ADD CONSTRAINT "Imagen_lote_id_fkey" FOREIGN KEY ("lote_id") REFERENCES "public"."Lote"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Imagen" ADD CONSTRAINT "Imagen_pieza_id_fkey" FOREIGN KEY ("pieza_id") REFERENCES "public"."Pieza"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."Historial" ADD CONSTRAINT "Historial_lote_id_fkey" FOREIGN KEY ("lote_id") REFERENCES "public"."Lote"("id") ON DELETE CASCADE ON UPDATE CASCADE;

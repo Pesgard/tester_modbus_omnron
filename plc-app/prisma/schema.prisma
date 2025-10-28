@@ -82,6 +82,7 @@ model UserRole {
 /// -------------------------
 model Receta {
   id                   String   @id @default(uuid())
+  model_id             Int      @unique // ID del modelo para el PLC (1-7)
   ppn                  String   @unique // Part Number
   cable_np             String // Cable Number
   quantity             Float // En pies
