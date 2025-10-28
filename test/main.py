@@ -83,11 +83,16 @@ PRESETS = {
         'needs_image': True
     },
     '6': {
-        'name': '🛠️ Sistema en Mantenimiento',
+        'name': '🛠️ Modo Mantenimiento - Sistema detenido',
         'packet': [3, 0, 0, 1, 0, 0, 1, 0],
         'needs_image': False
     },
     '7': {
+        'name': '🔧 Modo Mantenimiento - Con pieza NOK',
+        'packet': [3, 1, 99, 1, 0, 0, 1, 0],
+        'needs_image': False
+    },
+    '8': {
         'name': '🚫 Paquete Inválido (ready=0)',
         'packet': [0, 0, 0, 1, 0, 0, 0, 0],
         'needs_image': False
@@ -399,8 +404,9 @@ def main_menu(client):
         print(f"{Colors.CYAN}3.{Colors.ENDC} Crear paquete personalizado")
         print(f"{Colors.CYAN}4.{Colors.ENDC} Envío automático (múltiples paquetes)")
         print(f"{Colors.CYAN}5.{Colors.ENDC} Secuencias de test automatizadas")
-        print(f"{Colors.CYAN}6.{Colors.ENDC} Configuración")
-        print(f"{Colors.CYAN}7.{Colors.ENDC} Desconectar")
+        print(f"{Colors.CYAN}6.{Colors.ENDC} 🛠️  Enviar estado de Mantenimiento")
+        print(f"{Colors.CYAN}7.{Colors.ENDC} Configuración")
+        print(f"{Colors.CYAN}8.{Colors.ENDC} Desconectar")
         print(f"{Colors.RED}0.{Colors.ENDC} Salir")
         print("═" * 64)
 
@@ -417,8 +423,10 @@ def main_menu(client):
         elif choice == '5':
             test_sequences_menu(client)
         elif choice == '6':
-            config_menu(client)
+            maintenance_menu(client)
         elif choice == '7':
+            config_menu(client)
+        elif choice == '8':
             if client.connected:
                 success, msg = client.disconnect()
                 log_message(msg, Colors.GREEN if success else Colors.RED)
@@ -843,6 +851,98 @@ def run_test_complete(client):
     print(f"  {Colors.RED}NOK: {nok_count} ({nok_count * 100 / 50:.1f}%){Colors.ENDC}")
 
     log_message("Test completado", Colors.GREEN)
+
+
+# ========================================
+# MENÚ DE MANTENIMIENTO
+# ========================================
+def maintenance_menu(client):
+    """Menú de modo mantenimiento"""
+    print_header()
+    print(f"{Colors.BOLD}🛠️  MODO MANTENIMIENTO{Colors.ENDC}\n")
+
+    if not client.connected:
+        log_message("Debes conectarte primero", Colors.RED)
+        pause()
+        return
+
+    print(f"{Colors.YELLOW}Enviar señal de estado de mantenimiento al servidor{Colors.ENDC}\n")
+    
+    print(f"{Colors.CYAN}1.{Colors.ENDC} 🛠️  Entrar en Mantenimiento (sistema detenido)")
+    print(f"{Colors.CYAN}2.{Colors.ENDC} 🔧 Mantenimiento con pieza rechazada")
+    print(f"{Colors.CYAN}3.{Colors.ENDC} ▶️  Salir de Mantenimiento (modo RUNNING)")
+    print(f"{Colors.CYAN}4.{Colors.ENDC} 🔄 Enviar estado de Mantenimiento continuo")
+    print(f"{Colors.RED}0.{Colors.ENDC} Volver")
+
+    choice = input(f"\n{Colors.BOLD}Selecciona opción: {Colors.ENDC}").strip()
+
+    if choice == '0':
+        return
+    elif choice == '1':
+        # Mantenimiento - sistema detenido
+        packet = [3, 0, 0, 1, 0, 0, 1, 0]
+        print(f"\n{Colors.YELLOW}Enviando estado: MAINTENANCE (sistema detenido){Colors.ENDC}")
+        print_packet_info(packet)
+        
+        confirm = input(f"\n{Colors.BOLD}¿Confirmar envío? (s/n): {Colors.ENDC}").strip().lower()
+        if confirm == 's':
+            success, msg = client.send_packet(packet)
+            log_message(msg, Colors.GREEN if success else Colors.RED)
+    
+    elif choice == '2':
+        # Mantenimiento con pieza NOK
+        packet = [3, 1, 99, 1, 0, 0, 1, 0]
+        print(f"\n{Colors.YELLOW}Enviando estado: MAINTENANCE con pieza rechazada{Colors.ENDC}")
+        print_packet_info(packet)
+        
+        confirm = input(f"\n{Colors.BOLD}¿Confirmar envío? (s/n): {Colors.ENDC}").strip().lower()
+        if confirm == 's':
+            success, msg = client.send_packet(packet)
+            log_message(msg, Colors.GREEN if success else Colors.RED)
+    
+    elif choice == '3':
+        # Salir de mantenimiento
+        packet = [0, 0, 0, 1, 0, 0, 1, 0]
+        print(f"\n{Colors.GREEN}Enviando estado: RUNNING (normal){Colors.ENDC}")
+        print_packet_info(packet)
+        
+        confirm = input(f"\n{Colors.BOLD}¿Confirmar envío? (s/n): {Colors.ENDC}").strip().lower()
+        if confirm == 's':
+            success, msg = client.send_packet(packet)
+            log_message(msg, Colors.GREEN if success else Colors.RED)
+    
+    elif choice == '4':
+        # Envío continuo de mantenimiento
+        print(f"\n{Colors.YELLOW}Modo: Envío continuo de estado MAINTENANCE{Colors.ENDC}")
+        try:
+            interval = float(input(f"{Colors.BOLD}Intervalo entre envíos (segundos): {Colors.ENDC}").strip())
+        except ValueError:
+            log_message("Valor inválido", Colors.RED)
+            pause()
+            return
+        
+        packet = [3, 0, 0, 1, 0, 0, 1, 0]
+        print(f"\n{Colors.GREEN}Iniciando envío continuo...{Colors.ENDC}")
+        print(f"{Colors.YELLOW}Presiona Ctrl+C para detener{Colors.ENDC}\n")
+        
+        count = 0
+        try:
+            while True:
+                success, msg = client.send_packet(packet)
+                count += 1
+                if success:
+                    print(f"{Colors.GREEN}[{count}] ✓ Estado MAINTENANCE enviado{Colors.ENDC}")
+                else:
+                    print(f"{Colors.RED}[{count}] ✗ Error: {msg}{Colors.ENDC}")
+                    break
+                time.sleep(interval)
+        except KeyboardInterrupt:
+            print(f"\n\n{Colors.YELLOW}⏸️  Envío detenido (total: {count} paquetes){Colors.ENDC}")
+    
+    else:
+        log_message("Opción inválida", Colors.RED)
+    
+    pause()
 
 
 # ========================================

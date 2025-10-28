@@ -82,6 +82,28 @@ export async function handlePLCData(rawData: number[]): Promise<void> {
 			return;
 		}
 
+		// 🚨 EMERGENCY STOP: Check for MAINTENANCE status
+		if (parsed.lineStatus === 'MAINTENANCE' && currentActiveLot) {
+			console.log('🚨 [EMERGENCY STOP] MAINTENANCE status received - Stopping production immediately');
+			
+			// Stop production immediately
+			clearActiveLot();
+			
+			// Broadcast emergency stop event
+			broadcast({
+				type: 'emergency-stop',
+				payload: {
+					reason: 'MAINTENANCE',
+					message: 'Producción detenida',
+					timestamp: parsed.timestamp,
+					loteId: currentActiveLot.id,
+					loteName: currentActiveLot.name
+				}
+			});
+			
+			return; // Don't process any more data
+		}
+
 		// Broadcast raw data immediately to all connected clients
 		broadcast({
 			type: 'plc-data',
@@ -119,6 +141,35 @@ export async function handlePLCData(rawData: number[]): Promise<void> {
 			console.warn(`[PLC Handler] Lot ${lote.name} is ${lote.estado}, cannot add pieces`);
 			return;
 		}
+
+		// 🛡️ CRITICAL: Validate model_id matches the active lot's recipe
+		const expectedModelId = lote.receta.model_id;
+		const receivedModelId = parsed.modelId;
+		
+		if (receivedModelId !== expectedModelId) {
+			console.error(`🚨 [PLC Handler] MODEL ID MISMATCH! Expected: ${expectedModelId}, Received: ${receivedModelId}`);
+			console.error(`🚨 [PLC Handler] Lot: ${lote.name} (${lote.id})`);
+			console.error(`🚨 [PLC Handler] Recipe: ${lote.receta.ppn} - ${lote.receta.item_description}`);
+			
+			// Broadcast model mismatch error
+			broadcast({
+				type: 'model-mismatch',
+				payload: {
+					expectedModelId,
+					receivedModelId,
+					loteId: lote.id,
+					loteName: lote.name,
+					recipePpn: lote.receta.ppn,
+					message: `Model ID mismatch: Expected ${expectedModelId}, received ${receivedModelId}`,
+					timestamp: parsed.timestamp
+				}
+			});
+			
+			// DO NOT save to database - this prevents wrong data
+			return;
+		}
+
+		console.log(`✅ [PLC Handler] Model ID validated: ${receivedModelId} matches recipe ${lote.receta.ppn}`);
 
 	// Create piece record
 	const nextIndex = lote.piezas_ok + lote.piezas_fallas + 1;

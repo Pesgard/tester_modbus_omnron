@@ -34,6 +34,42 @@
 		loteName: ''
 	});
 
+	// Emergency stop modal state
+	let emergencyStopModal = $state<{
+		show: boolean;
+		reason: string;
+		message: string;
+		timestamp: string;
+		loteId: string;
+		loteName: string;
+	}>({
+		show: false,
+		reason: '',
+		message: '',
+		timestamp: '',
+		loteId: '',
+		loteName: ''
+	});
+
+	// Model mismatch modal state
+	let modelMismatchModal = $state<{
+		show: boolean;
+		expectedModelId: number;
+		receivedModelId: number;
+		loteName: string;
+		recipePpn: string;
+		message: string;
+		timestamp: string;
+	}>({
+		show: false,
+		expectedModelId: 0,
+		receivedModelId: 0,
+		loteName: '',
+		recipePpn: '',
+		message: '',
+		timestamp: ''
+	});
+
 	// Stop production confirmation modal
 	let stopProductionModal = $state<{
 		show: boolean;
@@ -232,8 +268,38 @@
 						console.error('❌ [WS] PLC Error:', message.payload);
 						break;
 						
-					case 'image-error':
-						console.error('❌ [WS] Image Error:', message.payload);
+					case 'emergency-stop':
+						console.log('🚨 [WS] Emergency stop:', message.payload);
+						
+						// Show emergency stop modal immediately
+						emergencyStopModal = {
+							show: true,
+							reason: message.payload.reason,
+							message: message.payload.message,
+							timestamp: message.payload.timestamp,
+							loteId: message.payload.loteId,
+							loteName: message.payload.loteName
+						};
+						
+						// Clear recent pieces and update status
+						recentPieces = [];
+						fetchLineStatus();
+						fetchAvailableLotes();
+						break;
+
+					case 'model-mismatch':
+						console.error('🚨 [WS] Model ID mismatch:', message.payload);
+						
+						// Show model mismatch modal
+						modelMismatchModal = {
+							show: true,
+							expectedModelId: message.payload.expectedModelId,
+							receivedModelId: message.payload.receivedModelId,
+							loteName: message.payload.loteName,
+							recipePpn: message.payload.recipePpn,
+							message: message.payload.message,
+							timestamp: message.payload.timestamp
+						};
 						break;
 				}
 			} catch (error) {
@@ -365,6 +431,29 @@
 			failureCode: 0,
 			piezaIndex: 0,
 			loteName: ''
+		};
+	}
+
+	function closeEmergencyStopModal() {
+		emergencyStopModal = {
+			show: false,
+			reason: '',
+			message: '',
+			timestamp: '',
+			loteId: '',
+			loteName: ''
+		};
+	}
+
+	function closeModelMismatchModal() {
+		modelMismatchModal = {
+			show: false,
+			expectedModelId: 0,
+			receivedModelId: 0,
+			loteName: '',
+			recipePpn: '',
+			message: '',
+			timestamp: ''
 		};
 	}
 
@@ -705,6 +794,255 @@
 					>
 						<IconCheckCircle size={24} />
 						<span>He Revisado</span>
+					</button>
+				</div>
+			</footer>
+		</div>
+	</div>
+{/if}
+
+<!-- Emergency Stop Modal -->
+{#if emergencyStopModal.show}
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div 
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+		onclick={closeEmergencyStopModal}
+	>
+		<div 
+			class="card variant-filled-error w-full max-w-2xl max-h-[90vh] overflow-auto m-4 p-0"
+			onclick={(e) => e.stopPropagation()}
+		>
+			<!-- Modal Header -->
+			<header class="card-header bg-error-500 text-white p-6">
+				<div class="flex items-center justify-between">
+					<div class="flex items-center gap-4">
+						<IconAlertTriangle size={48} class="animate-pulse" />
+						<div>
+							<h3 class="text-2xl font-bold">🚨 PARO DE EMERGENCIA</h3>
+							<p class="text-base opacity-90 mt-1">Estado: {emergencyStopModal.reason}</p>
+						</div>
+					</div>
+					<button 
+						class="btn-icon variant-filled hover:variant-filled-primary w-12 h-12 touch-manipulation"
+						onclick={closeEmergencyStopModal}
+						aria-label="Cerrar"
+					>
+						<IconX size={28} />
+					</button>
+				</div>
+			</header>
+
+			<!-- Modal Body -->
+			<section class="p-6 space-y-4">
+				<!-- Emergency Information -->
+				<div class="card variant-ghost-error p-4">
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div>
+							<p class="text-sm text-surface-600-400 mb-1">Motivo</p>
+							<p class="font-bold text-lg">{emergencyStopModal.reason}</p>
+						</div>
+						<div>
+							<p class="text-sm text-surface-600-400 mb-1">Lote Afectado</p>
+							<p class="font-bold text-lg">{emergencyStopModal.loteName}</p>
+						</div>
+					</div>
+					<div class="mt-4">
+						<p class="text-sm text-surface-600-400 mb-1">Mensaje</p>
+						<p class="font-semibold text-base">{emergencyStopModal.message}</p>
+					</div>
+					<div class="mt-4">
+						<p class="text-sm text-surface-600-400 mb-1">Timestamp</p>
+						<p class="font-mono text-sm">{new Date(emergencyStopModal.timestamp).toLocaleString()}</p>
+					</div>
+				</div>
+
+				<!-- Instructions -->
+				<div class="alert variant-filled-error">
+					<div class="alert-message">
+						<h4 class="font-bold mb-2">🛑 PRODUCCIÓN DETENIDA POR MANTENIMIENTO</h4>
+						<p class="text-sm">
+							El PLC ha enviado una señal de mantenimiento. La producción se ha detenido inmediatamente para garantizar la seguridad del equipo y personal.
+						</p>
+						<p class="text-sm mt-2 font-semibold">
+							⚠️ Complete las tareas de mantenimiento y reinicie la producción manualmente cuando esté listo.
+						</p>
+					</div>
+				</div>
+
+				<!-- Safety Notice -->
+				<div class="card variant-glass-surface p-4 border-l-4 border-warning-500">
+					<div class="flex items-start gap-3">
+						<IconAlertCircle size={24} class="text-warning-500 mt-1" />
+						<div>
+							<h5 class="font-bold text-warning-500 mb-2">Nota de Seguridad</h5>
+							<p class="text-sm text-surface-600-400">
+								Este paro de emergencia se activó automáticamente cuando el PLC detectó condiciones de mantenimiento. 
+								Verifique el estado del equipo antes de reiniciar la producción.
+							</p>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- Modal Footer -->
+			<footer class="card-footer bg-surface-200-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-6">
+				<div class="text-base text-warning-500 flex items-center gap-2">
+					<IconAlertCircle size={20} />
+					<span><span class="font-bold">Importante:</span> Producción detenida por mantenimiento</span>
+				</div>
+				<div class="flex gap-3 w-full md:w-auto">
+					<button 
+						class="btn variant-filled-error flex-1 md:flex-none text-lg px-6 py-4 min-h-[60px] touch-manipulation"
+						onclick={closeEmergencyStopModal}
+					>
+						<IconPause size={24} />
+						<span>Entendido</span>
+					</button>
+				</div>
+			</footer>
+		</div>
+	</div>
+{/if}
+
+<!-- Model Mismatch Modal -->
+{#if modelMismatchModal.show}
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div 
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+		onclick={closeModelMismatchModal}
+	>
+		<div 
+			class="card variant-filled-error w-full max-w-2xl max-h-[90vh] overflow-auto m-4 p-0"
+			onclick={(e) => e.stopPropagation()}
+		>
+			<!-- Modal Header -->
+			<header class="card-header bg-error-500 text-white p-6">
+				<div class="flex items-center justify-between">
+					<div class="flex items-center gap-4">
+						<IconAlertTriangle size={48} class="animate-pulse" />
+						<div>
+							<h3 class="text-2xl font-bold">🚨 ERROR DE MODELO ID</h3>
+							<p class="text-base opacity-90 mt-1">Mismatch detectado en producción</p>
+						</div>
+					</div>
+					<button 
+						class="btn-icon variant-filled hover:variant-filled-primary w-12 h-12 touch-manipulation"
+						onclick={closeModelMismatchModal}
+						aria-label="Cerrar"
+					>
+						<IconX size={28} />
+					</button>
+				</div>
+			</header>
+
+			<!-- Modal Body -->
+			<section class="p-6 space-y-4">
+				<!-- Error Information -->
+				<div class="card variant-ghost-error p-4">
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div>
+							<p class="text-sm text-surface-600-400 mb-1">Lote</p>
+							<p class="font-bold text-lg">{modelMismatchModal.loteName}</p>
+						</div>
+						<div>
+							<p class="text-sm text-surface-600-400 mb-1">Receta</p>
+							<p class="font-bold text-lg font-mono">{modelMismatchModal.recipePpn}</p>
+						</div>
+					</div>
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+						<div>
+							<p class="text-sm text-surface-600-400 mb-1">Model ID Esperado</p>
+							<p class="font-bold text-lg text-success-500">{modelMismatchModal.expectedModelId}</p>
+						</div>
+						<div>
+							<p class="text-sm text-surface-600-400 mb-1">Model ID Recibido</p>
+							<p class="font-bold text-lg text-error-500">{modelMismatchModal.receivedModelId}</p>
+						</div>
+					</div>
+					<div class="mt-4">
+						<p class="text-sm text-surface-600-400 mb-1">Timestamp</p>
+						<p class="font-mono text-sm">{new Date(modelMismatchModal.timestamp).toLocaleString()}</p>
+					</div>
+				</div>
+
+				<!-- Error Details -->
+				<div class="alert variant-filled-error">
+					<div class="alert-message">
+						<h4 class="font-bold mb-2">❌ PIEZA RECHAZADA</h4>
+						<p class="text-sm">
+							El PLC envió un Model ID ({modelMismatchModal.receivedModelId}) que no coincide con el lote activo ({modelMismatchModal.expectedModelId}).
+						</p>
+						<p class="text-sm mt-2 font-semibold">
+							🛡️ La pieza NO se guardó en la base de datos para mantener la integridad de los datos.
+						</p>
+					</div>
+				</div>
+
+				<!-- Instructions -->
+				<div class="card variant-glass-surface p-4 border-l-4 border-warning-500">
+					<div class="flex items-start gap-3">
+						<IconAlertCircle size={24} class="text-warning-500 mt-1" />
+						<div>
+							<h5 class="font-bold text-warning-500 mb-2">Acción Requerida</h5>
+							<p class="text-sm text-surface-600-400">
+								Verifique la configuración del PLC y asegúrese de que esté enviando el Model ID correcto ({modelMismatchModal.expectedModelId}) 
+								para el lote activo ({modelMismatchModal.loteName}).
+							</p>
+						</div>
+					</div>
+				</div>
+
+				<!-- Model ID Reference -->
+				<div class="card variant-ghost-surface p-4">
+					<h5 class="font-bold mb-3">📋 Referencia de Model IDs</h5>
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+						<div class="flex justify-between">
+							<span class="font-mono">ID 1:</span>
+							<span>1020746 (2 cond.)</span>
+						</div>
+						<div class="flex justify-between">
+							<span class="font-mono">ID 2:</span>
+							<span>1020746-02 (2 cond.)</span>
+						</div>
+						<div class="flex justify-between">
+							<span class="font-mono">ID 3:</span>
+							<span>1020746-03 (2 cond.)</span>
+						</div>
+						<div class="flex justify-between">
+							<span class="font-mono">ID 4:</span>
+							<span>1020746-04 (2 cond.)</span>
+						</div>
+						<div class="flex justify-between">
+							<span class="font-mono">ID 5:</span>
+							<span>1020746-05 (2 cond.)</span>
+						</div>
+						<div class="flex justify-between">
+							<span class="font-mono">ID 6:</span>
+							<span>1020746-06 (2 cond.)</span>
+						</div>
+						<div class="flex justify-between">
+							<span class="font-mono">ID 7:</span>
+							<span>698330001 (4 cond.)</span>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- Modal Footer -->
+			<footer class="card-footer bg-surface-200-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-6">
+				<div class="text-base text-warning-500 flex items-center gap-2">
+					<IconAlertCircle size={20} />
+					<span><span class="font-bold">Protegido:</span> Datos incorrectos rechazados</span>
+				</div>
+				<div class="flex gap-3 w-full md:w-auto">
+					<button 
+						class="btn variant-filled-error flex-1 md:flex-none text-lg px-6 py-4 min-h-[60px] touch-manipulation"
+						onclick={closeModelMismatchModal}
+					>
+						<IconCheckCircle size={24} />
+						<span>Entendido</span>
 					</button>
 				</div>
 			</footer>
