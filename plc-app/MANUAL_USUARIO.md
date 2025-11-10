@@ -49,7 +49,10 @@ Este sistema de control de calidad industrial permite gestionar y monitorear la 
 
 **Paso 2:** Se mostrará la pantalla de inicio de sesión.
 
+<img width="784" height="912" alt="image" src="https://github.com/user-attachments/assets/98fe6ab2-0f3f-4781-97da-fe87a4208a8b" />
+
 {Imagen del login del sistema mostrando los campos de usuario y contraseña, con el botón de inicio de sesión}
+
 
 **Paso 3:** Ingrese sus credenciales:
 - **Usuario**: Ingrese su nombre de usuario
@@ -63,8 +66,6 @@ Este sistema de control de calidad industrial permite gestionar y monitorear la 
 
 Después de iniciar sesión, verá brevemente una pantalla de carga mientras el sistema prepara su sesión.
 
-{Imagen de la pantalla de carga con el spinner y mensaje de bienvenida}
-
 ### 2.3 Primer Acceso
 
 Si es la primera vez que accede al sistema, será redirigido automáticamente al Dashboard Principal.
@@ -77,6 +78,8 @@ Si es la primera vez que accede al sistema, será redirigido automáticamente al
 
 El Dashboard Principal es la pantalla de inicio del sistema y proporciona una vista general del estado del sistema.
 
+<img width="1781" height="911" alt="image" src="https://github.com/user-attachments/assets/cd16d626-b90f-4061-a2a0-74fe9f615824" />
+
 {Imagen del dashboard principal mostrando las tarjetas de estadísticas, lotes recientes y acceso rápido}
 
 ### 3.2 Secciones del Dashboard
@@ -87,6 +90,8 @@ En la parte superior encontrará:
 - **Saludo personalizado** con su nombre de usuario
 - **Título del sistema**: "Sistema de Control de Calidad Industrial"
 - **Icono de fábrica** identificando el sistema
+
+<img width="639" height="136" alt="image" src="https://github.com/user-attachments/assets/25f4b6df-0a0a-4c08-8264-6052082cb8f2" />
 
 {Imagen del encabezado de bienvenida con el saludo y nombre de usuario}
 
@@ -99,12 +104,16 @@ El dashboard muestra 4 tarjetas principales con estadísticas del sistema:
 - Icono: Lista de verificación
 - Color: Azul (Primary)
 
+<img width="421" height="183" alt="image" src="https://github.com/user-attachments/assets/7c8fbe29-5d47-4887-9cfd-0e1743ed7f47" />
+
 {Imagen de la tarjeta de Recetas Activas con el número total}
 
 **2. Lotes Activos**
 - Muestra la cantidad de lotes actualmente en producción
 - Icono: Indicador de actividad
 - Color: Amarillo (Warning)
+
+<img width="431" height="195" alt="image" src="https://github.com/user-attachments/assets/600c07ce-a588-47cf-a524-606a9e7c5404" />
 
 {Imagen de la tarjeta de Lotes Activos con el número actual}
 
@@ -113,27 +122,11 @@ El dashboard muestra 4 tarjetas principales con estadísticas del sistema:
 - Icono: Check verde
 - Color: Verde (Success)
 
+<img width="432" height="208" alt="image" src="https://github.com/user-attachments/assets/0ff67ca4-2212-4ced-8345-d52ee4ede488" />
+
 {Imagen de la tarjeta de Piezas OK con el total acumulado}
 
-**4. Precisión del Sistema**
-- Muestra el porcentaje de precisión general del sistema
-- Icono: Objetivo
-- Color: Azul (Primary)
-
-{Imagen de la tarjeta de Precisión con el porcentaje}
-
-#### 3.2.3 Información del Lote Activo
-
-Si hay un lote en producción, se mostrará una tarjeta especial con:
-- **Nombre del lote**
-- **Receta (PPN)** asociada
-- **Progreso**: Piezas OK vs Objetivo
-- **Estado**: Activo, Pausado, etc.
-- **Botón de acceso rápido** a la página de producción
-
-{Imagen de la tarjeta de Lote Activo con toda la información}
-
-#### 3.2.4 Lotes Recientes
+#### 3.2.3 Lotes Recientes
 
 Muestra una tabla con los últimos 5 lotes procesados, incluyendo:
 - Nombre del lote
@@ -143,22 +136,17 @@ Muestra una tabla con los últimos 5 lotes procesados, incluyendo:
 - Fecha de inicio
 - Creado por
 
+<img width="1771" height="356" alt="image" src="https://github.com/user-attachments/assets/63f8b751-8f5d-4459-8e14-d928e5af8c52" />
+
 {Imagen de la tabla de Lotes Recientes}
-
-#### 3.2.5 Acceso Rápido
-
-Enlaces rápidos a las secciones principales:
-- **Producción**: Control de línea en tiempo real
-- **Historial**: Ver todos los lotes completados
-- **Gestión**: Administrar recetas, lotes, usuarios y roles
-
-{Imagen de los botones de acceso rápido}
 
 ### 3.3 Navegación
 
 #### 3.3.1 Barra Lateral (Sidebar)
 
 La barra lateral izquierda contiene el menú principal de navegación:
+
+<img width="125" height="922" alt="image" src="https://github.com/user-attachments/assets/3079cc3e-d38b-41e2-998d-4070334cb1da" />
 
 {Imagen de la barra lateral con todos los elementos del menú}
 
@@ -177,6 +165,8 @@ La barra lateral izquierda contiene el menú principal de navegación:
 
 **Paso 2:** Se cerrará su sesión y será redirigido a la pantalla de inicio de sesión.
 
+<img width="134" height="144" alt="image" src="https://github.com/user-attachments/assets/fed85b52-7ed5-44e5-8a2e-1f9034459514" />
+
 {Imagen del botón de logout en la barra lateral}
 
 ---
@@ -188,6 +178,8 @@ La barra lateral izquierda contiene el menú principal de navegación:
 **Paso 1:** Desde el Dashboard Principal, haga clic en **"Production"** en la barra lateral o en el botón de acceso rápido.
 
 **Paso 2:** Se abrirá la página de Control de Producción.
+
+<img width="1904" height="915" alt="image" src="https://github.com/user-attachments/assets/b9253404-a05c-4e13-acfa-592c97034984" />
 
 {Imagen de la página de producción mostrando el estado de la línea y controles}
 
