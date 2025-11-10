@@ -187,23 +187,13 @@ La barra lateral izquierda contiene el menú principal de navegación:
 
 La página de producción muestra información en tiempo real sobre el estado de la línea de producción.
 
+<img width="1470" height="809" alt="image" src="https://github.com/user-attachments/assets/ad1b4361-7012-48d6-a58f-0778611a126c" />
+
 {Imagen completa de la página de producción con todas las secciones visibles}
 
 ### 4.3 Secciones de la Página de Producción
 
-#### 4.3.1 Estado de la Línea
-
-En la parte superior se muestra el estado actual de la línea:
-
-**Estados Posibles:**
-- **🟢 Activo**: La línea está en producción
-- **🟡 Pausado**: La producción está pausada
-- **🔴 Detenido**: La producción está detenida
-- **🔵 Mantenimiento**: La línea está en modo mantenimiento
-
-{Imagen del indicador de estado de la línea con los diferentes estados}
-
-#### 4.3.2 Información del Lote Activo
+#### 4.3.1 Información del Lote Activo
 
 Si hay un lote en producción, se muestra:
 - **Nombre del lote**
@@ -212,33 +202,35 @@ Si hay un lote en producción, se muestra:
 - **Objetivo de piezas OK**
 - **Progreso actual**
 
+<img width="1336" height="125" alt="image" src="https://github.com/user-attachments/assets/ce2a4c95-61a2-4d0e-9df6-d433c179c212" />
+
 {Imagen de la sección de información del lote activo}
 
-#### 4.3.3 Métricas en Tiempo Real
+#### 4.3.2 Métricas en Tiempo Real
 
 Se muestran 4 métricas principales:
 
-**1. Tasa de Producción**
-- Piezas procesadas por minuto
-- Icono: Velocímetro
-
-{Imagen de la tarjeta de Tasa de Producción}
-
-**2. Eficiencia**
+**1. Eficiencia**
 - Porcentaje de eficiencia de la línea
 - Icono: Gráfico de barras
 
+<img width="209" height="120" alt="image" src="https://github.com/user-attachments/assets/a349a000-8f8f-4253-b326-e986039898bd" />
+
 {Imagen de la tarjeta de Eficiencia}
 
-**3. Precisión**
+**2. Precisión**
 - Porcentaje de piezas OK vs total
 - Icono: Objetivo
 
+<img width="265" height="153" alt="image" src="https://github.com/user-attachments/assets/f12bfaf8-4d70-4309-b284-ba40e523d806" />
+
 {Imagen de la tarjeta de Precisión}
 
-**4. Total de Piezas**
+**3. Total de Piezas**
 - Contador total de piezas procesadas
 - Icono: Contador
+
+<img width="1344" height="79" alt="image" src="https://github.com/user-attachments/assets/9ce1f234-f874-4c97-8de9-73777796cd4d" />
 
 {Imagen de la tarjeta de Total de Piezas}
 
@@ -247,6 +239,8 @@ Se muestran 4 métricas principales:
 Se muestran dos contadores grandes:
 - **Piezas OK**: Contador verde con el total de piezas aprobadas
 - **Piezas NOK**: Contador rojo con el total de piezas rechazadas
+
+<img width="522" height="107" alt="image" src="https://github.com/user-attachments/assets/28716fe9-a222-40a4-9d8b-0b4d31eaa1b5" />
 
 {Imagen de los contadores grandes de Piezas OK y NOK}
 
@@ -261,6 +255,8 @@ Sección que muestra los datos en bruto recibidos del PLC:
 - **Estado Eléctrico**: OK/Error
 - **Bandera de Listo**: Sí/No
 
+<img width="1254" height="178" alt="image" src="https://github.com/user-attachments/assets/70f2ce27-5600-4e37-ae94-7718f354fa67" />
+
 {Imagen de la sección de Datos del PLC con todos los campos}
 
 #### 4.3.6 Piezas Recientes
@@ -272,6 +268,8 @@ Tabla que muestra las últimas piezas procesadas con:
 - **Timestamp**: Fecha y hora de procesamiento
 - **Imagen**: Si tiene imagen asociada
 
+<img width="1342" height="171" alt="image" src="https://github.com/user-attachments/assets/daecbd5a-228b-464b-97d1-6a20d84514b6" />
+
 {Imagen de la tabla de Piezas Recientes}
 
 ### 4.4 Iniciar Producción
@@ -280,29 +278,29 @@ Tabla que muestra las últimas piezas procesadas con:
 
 **Paso 2:** Haga clic en el botón **"Iniciar Producción"** (si tiene permisos).
 
-**Paso 3:** Se abrirá un modal para seleccionar el lote.
+**Paso 3:** Seleccione el lote que desea iniciar de la lista desplegable.
 
-{Imagen del modal de selección de lote para iniciar producción}
-
-**Paso 4:** Seleccione el lote que desea iniciar de la lista desplegable.
-
-**Paso 5:** Verifique la información del lote:
+**Paso 4:** Verifique la información del lote:
 - Nombre del lote
 - Receta (PPN)
 - Model ID del PLC
 - Objetivo de piezas OK
 
-**Paso 6:** Haga clic en **"Confirmar"** para iniciar la producción.
+**Paso 5:** Haga clic en **"Confirmar"** para iniciar la producción.
 
-**Paso 7:** El sistema iniciará la producción y comenzará a recibir datos del PLC.
+**Paso 6:** El sistema iniciará la producción y comenzará a recibir datos del PLC.
 
-{Imagen del modal de confirmación de inicio de producción}
+<img width="1372" height="794" alt="image" src="https://github.com/user-attachments/assets/0bfe43e7-24e3-4809-949d-097bd3d2b513" />
+
+{Imagen de inicio de producción}
 
 ### 4.5 Detener Producción
 
 **Paso 1:** Haga clic en el botón **"Detener Producción"** (si tiene permisos).
 
 **Paso 2:** Se abrirá un modal de confirmación.
+
+<img width="698" height="649" alt="image" src="https://github.com/user-attachments/assets/bdf59ed9-74ee-4c01-87d3-2d3d3027c6b3" />
 
 {Imagen del modal de confirmación para detener producción}
 
@@ -321,6 +319,8 @@ Tabla que muestra las últimas piezas procesadas con:
 
 Cuando se detecta una pieza defectuosa, aparece automáticamente un modal de error:
 
+<img width="658" height="751" alt="image" src="https://github.com/user-attachments/assets/675bad13-8405-40a4-9cc5-551c0f3282aa" />
+
 {Imagen del modal de error mostrando la pieza defectuosa}
 
 **Información mostrada:**
@@ -334,25 +334,18 @@ Cuando se detecta una pieza defectuosa, aparece automáticamente un modal de err
 - **"Revisar"**: Cierra el modal y continúa la producción
 - **"Detener Producción"**: Detiene la producción inmediatamente
 
-#### 4.6.2 Modal de Paro de Emergencia
+#### 4.6.2 Paro de Emergencia
 
-Si el PLC envía una señal de mantenimiento, aparece un modal de paro de emergencia:
+Si el PLC envía una señal de mantenimiento o paro de emergencia, 
+El sistema automaticamente cierra la linea de produccion que se este ejecutando en ese momento:
 
-{Imagen del modal de paro de emergencia con el motivo de mantenimiento}
-
-**Información mostrada:**
-- **Motivo**: MANTENIMIENTO
-- **Lote afectado**: Nombre del lote que se detuvo
-- **Mensaje**: Explicación del paro
-- **Timestamp**: Fecha y hora del evento
-
-**Acciones:**
-- **"Entendido"**: Cierra el modal
 - La producción se detiene automáticamente y debe reiniciarse manualmente después del mantenimiento
 
 #### 4.6.3 Modal de Error de Model ID
 
 Si el PLC envía un Model ID que no coincide con el lote activo, aparece un modal de error:
+
+<img width="656" height="721" alt="image" src="https://github.com/user-attachments/assets/d05b9f6c-fed5-4666-815b-a0e9d6ba3262" />
 
 {Imagen del modal de error de Model ID mostrando el mismatch}
 
@@ -389,11 +382,15 @@ La página de producción se actualiza automáticamente cada segundo mostrando:
 
 **Paso 2:** Se abrirá la página de Historial de Lotes.
 
+<img width="1470" height="804" alt="image" src="https://github.com/user-attachments/assets/4198ce05-a32c-434e-9b19-ab92231ecd50" />
+
 {Imagen de la página de historial mostrando la lista de lotes}
 
 ### 5.2 Vista General del Historial
 
 La página de historial muestra todos los lotes que han sido procesados o están pausados.
+
+<img width="1340" height="419" alt="image" src="https://github.com/user-attachments/assets/9a356a80-9c3f-4fa2-b8df-6770cc8decb9" />
 
 {Imagen completa de la página de historial con filtros y tabla}
 
@@ -405,6 +402,8 @@ La página de historial muestra todos los lotes que han sido procesados o están
 
 **Paso 2:** Los resultados se filtrarán automáticamente mientras escribe.
 
+<img width="1365" height="476" alt="image" src="https://github.com/user-attachments/assets/425cb570-e11b-4a85-a079-9026e85ff4d2" />
+
 {Imagen del campo de búsqueda con texto de ejemplo}
 
 #### 5.3.2 Filtro por Estado
@@ -415,6 +414,8 @@ La página de historial muestra todos los lotes que han sido procesados o están
 - **Todos**: Muestra todos los lotes
 - **Cerrados**: Solo lotes completados
 - **Pausados**: Solo lotes pausados
+
+<img width="1370" height="510" alt="image" src="https://github.com/user-attachments/assets/d9600b1c-c9f7-4dae-bb13-6f9507bdd69c" />
 
 {Imagen del filtro de estado con las opciones}
 
@@ -435,6 +436,8 @@ La tabla muestra la siguiente información para cada lote:
 - **Creado por**: Usuario que creó el lote
 - **Acciones**: Botón para ver detalles
 
+<img width="1349" height="315" alt="image" src="https://github.com/user-attachments/assets/17312417-e9f2-4f85-8db1-c4d6c10a1ff2" />
+
 {Imagen de la tabla de lotes con todas las columnas visibles}
 
 #### 5.3.4 Ver Detalles de un Lote
@@ -443,15 +446,23 @@ La tabla muestra la siguiente información para cada lote:
 
 **Paso 2:** Se abrirá la página de detalles del lote.
 
+<img width="171" height="114" alt="image" src="https://github.com/user-attachments/assets/e31f50f8-432f-4d68-b052-2b9ee386e59a" />
+
 {Imagen del botón "View Details" en la tabla}
 
 ### 5.4 Página de Detalles del Lote
 
 La página de detalles muestra información completa sobre un lote específico.
 
+<img width="1470" height="811" alt="image" src="https://github.com/user-attachments/assets/8f5a4381-6b49-4327-9a3a-b4b7a9cc3f08" />
+
+<img width="1371" height="804" alt="image" src="https://github.com/user-attachments/assets/ef880698-15ff-4094-bb72-ba4da26e29ac" />
+
 {Imagen completa de la página de detalles del lote}
 
 #### 5.4.1 Información General del Lote
+
+<img width="1367" height="651" alt="image" src="https://github.com/user-attachments/assets/c4f4336b-3c04-4fb6-a339-222fb090b942" />
 
 Se muestra en la parte superior:
 - **Nombre del lote**
@@ -472,12 +483,16 @@ Se muestran 4 tarjetas con estadísticas:
 - Icono: Check verde
 - Color: Verde
 
+<img width="351" height="150" alt="image" src="https://github.com/user-attachments/assets/7e8bade6-4495-4004-8a96-e1bb44a303c8" />
+
 {Imagen de la tarjeta de Piezas OK}
 
 **2. Piezas NOK**
 - Total de piezas rechazadas
 - Icono: X rojo
 - Color: Rojo
+
+<img width="306" height="130" alt="image" src="https://github.com/user-attachments/assets/87b7eade-79ee-4ff6-bc52-65d4a7fbc88a" />
 
 {Imagen de la tarjeta de Piezas NOK}
 
@@ -486,18 +501,13 @@ Se muestran 4 tarjetas con estadísticas:
 - Icono: Paquete
 - Color: Azul
 
+<img width="286" height="121" alt="image" src="https://github.com/user-attachments/assets/e8f614c5-5c63-43b0-ab0d-dd00ffb19a11" />
+
 {Imagen de la tarjeta de Total de Piezas}
 
-**4. Precisión**
-- Porcentaje de precisión del lote
-- Icono: Objetivo
-- Color: Azul
-
-{Imagen de la tarjeta de Precisión}
-
-#### 5.4.3 Galería de Imágenes de Defectos
-
 Si el lote tiene piezas defectuosas con imágenes, se muestra una galería:
+
+<img width="850" height="531" alt="image" src="https://github.com/user-attachments/assets/67a90185-633c-4301-bcac-93f43c68c896" />
 
 {Imagen de la galería de imágenes de defectos}
 
@@ -509,6 +519,8 @@ Si el lote tiene piezas defectuosas con imágenes, se muestra una galería:
 **Paso 1:** Haga clic en una imagen de la galería.
 
 **Paso 2:** Se abrirá un modal con la imagen en tamaño completo.
+
+<img width="1054" height="663" alt="image" src="https://github.com/user-attachments/assets/37e093eb-7a2f-4b4a-8331-b58825dc97b3" />
 
 {Imagen del modal de imagen ampliada}
 
@@ -531,6 +543,8 @@ Tabla completa con todas las piezas del lote:
 - **Timestamp**: Fecha y hora de procesamiento
 - **Tiene Imagen**: Indicador si hay imagen asociada
 
+<img width="1299" height="483" alt="image" src="https://github.com/user-attachments/assets/71ba411f-8d0c-4bbb-8fbd-13ebf04c9f15" />
+
 {Imagen de la tabla de piezas con todas las columnas}
 
 **Funcionalidades:**
@@ -544,6 +558,8 @@ Tabla completa con todas las piezas del lote:
 
 **Paso 1:** En la página de detalles del lote, haga clic en el botón **"Export to CSV"**.
 
+<img width="1334" height="287" alt="image" src="https://github.com/user-attachments/assets/79958703-856a-4c5f-b78c-63019c2dc79f" />
+
 {Imagen del botón "Export to CSV" en la página de detalles}
 
 **Paso 2:** Se descargará automáticamente un archivo CSV con:
@@ -551,6 +567,9 @@ Tabla completa con todas las piezas del lote:
 - Estadísticas completas
 - Lista detallada de todas las piezas
 - Información de imágenes asociadas
+
+<img width="1199" height="956" alt="image" src="https://github.com/user-attachments/assets/2ac3c41c-c24d-49ba-8f1f-4c55f348412b" />
+
 
 **Paso 3:** El archivo se guardará en su carpeta de descargas con el nombre: `lote_{nombre_lote}_{fecha}.csv`
 
@@ -567,6 +586,9 @@ Tabla completa con todas las piezas del lote:
 - Estadísticas de cada lote
 - Fecha de generación del reporte
 
+<img width="966" height="298" alt="image" src="https://github.com/user-attachments/assets/7e4929ad-78fd-46ef-bfaa-3a2d43291c95" />
+
+
 **Paso 4:** El archivo se guardará con el nombre: `lotes_{fecha_hora}.csv`
 
 **Nota:** Los archivos CSV pueden abrirse en Excel, Google Sheets o cualquier editor de texto.
@@ -581,6 +603,8 @@ Tabla completa con todas las piezas del lote:
 
 **Paso 2:** Se abrirá la página principal de Gestión.
 
+<img width="1470" height="567" alt="image" src="https://github.com/user-attachments/assets/3d478fdc-6060-4fe1-bfec-b2ddc1ef729e" />
+
 {Imagen de la página principal de gestión con las 4 secciones}
 
 ### 6.2 Secciones de Gestión
@@ -591,6 +615,8 @@ La página principal muestra 4 secciones principales:
 2. **📦 Lots (Lotes)**: Gestión de lotes de producción
 3. **👥 Users (Usuarios)**: Gestión de usuarios del sistema
 4. **🛡️ Roles & Permissions (Roles y Permisos)**: Configuración de roles y permisos
+
+<img width="1072" height="244" alt="image" src="https://github.com/user-attachments/assets/48a94501-1d21-4651-be5e-5f78e0fd89b5" />
 
 {Imagen de las 4 tarjetas de secciones de gestión}
 
@@ -612,6 +638,8 @@ La página principal muestra 4 secciones principales:
 
 La página muestra una tabla con todas las recetas configuradas en el sistema.
 
+<img width="1352" height="727" alt="image" src="https://github.com/user-attachments/assets/d9b7b3a3-d538-40cc-abdf-f9ad5753c014" />
+
 {Imagen completa de la página de recetas con tabla y controles}
 
 #### 6.3.3 Información de las Recetas
@@ -626,6 +654,8 @@ Cada receta muestra:
 - **Estado**: Activa/Inactiva
 - **Acciones**: Botones para editar o eliminar
 
+<img width="1296" height="474" alt="image" src="https://github.com/user-attachments/assets/61794069-0a4f-4c15-a44d-38ccf6726cc0" />
+
 {Imagen de la tabla de recetas con todas las columnas}
 
 ### 6.3.4 Crear una Nueva Receta
@@ -635,6 +665,8 @@ Cada receta muestra:
 {Imagen del botón "New Recipe"}
 
 **Paso 2:** Se abrirá un modal para crear la receta.
+
+<img width="493" height="707" alt="image" src="https://github.com/user-attachments/assets/a161dec8-e8eb-490b-a8a4-1a456ca7c9cb" />
 
 {Imagen del modal de creación de receta}
 
@@ -685,13 +717,19 @@ Cada receta muestra:
 
 **Paso 5:** Si hay errores, se mostrarán mensajes de validación.
 
+*** OJO: LAS RECETAS NUEVAS QUE SE AGREGEN TIENEN QUE REGISTRARSE EN EL PLC DE NO HACERLO LOS LOTES CON LAS RECETAS NUEVAS NO FUNCIONARAN CORRECTAMENTE
+
 ### 6.3.5 Editar una Receta
 
 **Paso 1:** En la tabla de recetas, haga clic en el botón de editar (icono de lápiz) de la receta que desea modificar.
 
+<img width="172" height="93" alt="image" src="https://github.com/user-attachments/assets/4f83d819-82b8-4fc3-a2b3-d8d7eb57cbbe" />
+
 {Imagen del botón de editar en la tabla}
 
 **Paso 2:** Se abrirá un modal con los datos actuales de la receta.
+
+<img width="485" height="700" alt="image" src="https://github.com/user-attachments/assets/94b33e55-468f-495b-8c13-a190d013929b" />
 
 {Imagen del modal de edición de receta}
 
@@ -704,6 +742,8 @@ Cada receta muestra:
 ### 6.3.6 Eliminar una Receta
 
 **Paso 1:** En la tabla de recetas, haga clic en el botón de eliminar (icono de basura) de la receta que desea eliminar.
+
+<img width="62" height="66" alt="image" src="https://github.com/user-attachments/assets/9a0a402b-4100-4859-9c7b-ad8c68c6f180" />
 
 {Imagen del botón de eliminar}
 
@@ -722,6 +762,8 @@ Cada receta muestra:
 
 **Paso 2:** Los resultados se filtrarán automáticamente mientras escribe.
 
+<img width="1359" height="160" alt="image" src="https://github.com/user-attachments/assets/459cd29e-7978-4917-b1e3-4cc8ee05435f" />
+
 {Imagen del campo de búsqueda de recetas}
 
 ---
@@ -734,11 +776,15 @@ Cada receta muestra:
 
 **Paso 2:** Se abrirá la página de gestión de lotes.
 
+<img width="529" height="144" alt="image" src="https://github.com/user-attachments/assets/f217e930-8e06-463f-b5b3-9114a47dd1f8" />
+
 {Imagen de la página de lotes con la tabla}
 
 ### 6.4.2 Vista de Lotes
 
 La página muestra una tabla con todos los lotes del sistema.
+
+<img width="1470" height="806" alt="image" src="https://github.com/user-attachments/assets/2b240bc1-2677-4829-b43e-14dfd3a8beae" />
 
 {Imagen completa de la página de lotes}
 
@@ -756,15 +802,21 @@ Cada lote muestra:
 - **Creado por**: Usuario que creó el lote
 - **Acciones**: Botones para editar o eliminar
 
+<img width="1338" height="339" alt="image" src="https://github.com/user-attachments/assets/fd36e616-ccde-4973-86ca-153dc70e0cd1" />
+
 {Imagen de la tabla de lotes con todas las columnas}
 
 ### 6.4.4 Crear un Nuevo Lote
 
 **Paso 1:** Haga clic en el botón **"New Lot"** (si tiene permisos).
 
+<img width="1363" height="98" alt="image" src="https://github.com/user-attachments/assets/9ec02263-3d19-48cc-82de-19f3cde8a7ab" />
+
 {Imagen del botón "New Lot"}
 
 **Paso 2:** Se abrirá un modal para crear el lote.
+
+<img width="897" height="439" alt="image" src="https://github.com/user-attachments/assets/7f650926-9c8c-480d-aef6-ccfb51315d4e" />
 
 {Imagen del modal de creación de lote}
 
@@ -793,9 +845,13 @@ Cada lote muestra:
 
 **Paso 1:** En la tabla de lotes, haga clic en el botón de editar (icono de lápiz) del lote que desea modificar.
 
+<img width="158" height="203" alt="image" src="https://github.com/user-attachments/assets/87d95e89-9b2d-488f-bc87-520450371405" />
+
 {Imagen del botón de editar}
 
 **Paso 2:** Se abrirá un modal con los datos actuales del lote.
+
+<img width="283" height="293" alt="image" src="https://github.com/user-attachments/assets/ddcbded4-68aa-4c22-be17-8a86a3396e21" />
 
 {Imagen del modal de edición de lote}
 
@@ -821,9 +877,14 @@ Cada lote muestra:
 
 **Paso 1:** En la tabla de lotes, haga clic en el botón de eliminar (icono de basura) del lote que desea eliminar.
 
+<img width="67" height="57" alt="image" src="https://github.com/user-attachments/assets/5969081a-e970-473b-9415-8f18bb70ed53" />
+
 {Imagen del botón de eliminar}
 
 **Paso 2:** Se mostrará un mensaje de confirmación.
+
+<img width="455" height="146" alt="image" src="https://github.com/user-attachments/assets/8472f00b-78d6-4ff6-a624-eac1bf8b877f" />
+
 
 **Paso 3:** Confirme la eliminación.
 
@@ -837,6 +898,8 @@ Cada lote muestra:
 
 **Paso 2:** Los resultados se filtrarán automáticamente.
 
+<img width="1349" height="233" alt="image" src="https://github.com/user-attachments/assets/8a0a77d8-c20f-4f29-811b-91f66447eecb" />
+
 {Imagen del campo de búsqueda de lotes}
 
 ---
@@ -849,11 +912,15 @@ Cada lote muestra:
 
 **Paso 2:** Se abrirá la página de gestión de usuarios.
 
+<img width="634" height="146" alt="image" src="https://github.com/user-attachments/assets/98bca81e-05c6-4b0f-814c-32570b562189" />
+
 {Imagen de la página de usuarios con la tabla}
 
 ### 6.5.2 Vista de Usuarios
 
 La página muestra una tabla con todos los usuarios del sistema.
+
+<img width="1470" height="792" alt="image" src="https://github.com/user-attachments/assets/e479adc4-0e41-4caf-bf05-ee4da630d083" />
 
 {Imagen completa de la página de usuarios}
 
@@ -866,6 +933,8 @@ Cada usuario muestra:
 - **Fecha de Creación**: Cuándo se creó la cuenta
 - **Acciones**: Botones para editar o eliminar
 
+<img width="1298" height="223" alt="image" src="https://github.com/user-attachments/assets/5372a141-62da-4cd1-9c21-951149159c89" />
+
 {Imagen de la tabla de usuarios con todas las columnas}
 
 ### 6.5.4 Crear un Nuevo Usuario
@@ -875,6 +944,8 @@ Cada usuario muestra:
 {Imagen del botón "New User"}
 
 **Paso 2:** Se abrirá un modal para crear el usuario.
+
+<img width="553" height="484" alt="image" src="https://github.com/user-attachments/assets/8f27cd7a-8179-4956-bd13-a3794a4620bf" />
 
 {Imagen del modal de creación de usuario}
 
@@ -910,24 +981,26 @@ Cada usuario muestra:
 
 **Paso 1:** En la tabla de usuarios, haga clic en el botón de editar (icono de lápiz) del usuario que desea modificar.
 
+<img width="82" height="62" alt="image" src="https://github.com/user-attachments/assets/dd919bb9-a91d-4ed4-9d16-a77d596bcb98" />
+
 {Imagen del botón de editar}
 
 **Paso 2:** Se abrirá un modal con los datos actuales del usuario.
 
+<img width="260" height="231" alt="image" src="https://github.com/user-attachments/assets/6c8f3967-1eb5-4302-ad72-0d7e6c41b975" />
+
 {Imagen del modal de edición de usuario}
 
 **Paso 3:** Puede modificar:
-- **Contraseña**: Dejar en blanco para mantener la actual, o ingresar una nueva
-- **Roles**: Agregar o quitar roles
-- **Estado**: Activar o desactivar el usuario
+- **Nombre de usuario**: Dejar en blanco para mantener la actual, o ingresar una nueva
 
 **Paso 4:** Haga clic en **"Update"** para guardar los cambios.
-
-**Nota:** El nombre de usuario no puede modificarse una vez creado.
 
 ### 6.5.6 Eliminar un Usuario
 
 **Paso 1:** En la tabla de usuarios, haga clic en el botón de eliminar (icono de basura) del usuario que desea eliminar.
+
+<img width="58" height="120" alt="image" src="https://github.com/user-attachments/assets/2c71d4c5-2a3d-4241-a689-30a29fd2b487" />
 
 {Imagen del botón de eliminar}
 
@@ -943,6 +1016,8 @@ Cada usuario muestra:
 
 **Paso 2:** Los resultados se filtrarán automáticamente.
 
+<img width="1339" height="165" alt="image" src="https://github.com/user-attachments/assets/844be1bb-d95b-4b6d-95dc-8b775d18a22d" />
+
 {Imagen del campo de búsqueda de usuarios}
 
 ---
@@ -955,11 +1030,15 @@ Cada usuario muestra:
 
 **Paso 2:** Se abrirá la página de gestión de roles.
 
+<img width="662" height="121" alt="image" src="https://github.com/user-attachments/assets/d1a85eb3-e078-490f-b5ca-5e10bcc0eba3" />
+
 {Imagen de la página de roles con la tabla}
 
 ### 6.6.2 Vista de Roles
 
 La página muestra una tabla con todos los roles configurados en el sistema.
+
+<img width="1470" height="603" alt="image" src="https://github.com/user-attachments/assets/f821b262-ec2d-4290-929c-8ccdd890893e" />
 
 {Imagen completa de la página de roles}
 
@@ -972,6 +1051,8 @@ Cada rol muestra:
 - **Usuarios**: Usuarios que tienen este rol asignado
 - **Acciones**: Botones para gestionar permisos, editar o eliminar
 
+<img width="1295" height="236" alt="image" src="https://github.com/user-attachments/assets/d34a6f83-6e86-4ef6-abef-4b42f74d27b5" />
+
 {Imagen de la tabla de roles con todas las columnas}
 
 ### 6.6.4 Crear un Nuevo Rol
@@ -981,6 +1062,8 @@ Cada rol muestra:
 {Imagen del botón "New Role"}
 
 **Paso 2:** Se abrirá un modal para crear el rol.
+
+<img width="209" height="103" alt="image" src="https://github.com/user-attachments/assets/c450adcc-7ae7-4485-a4dd-ae8d23ae94d6" />
 
 {Imagen del modal de creación de rol}
 
@@ -1003,6 +1086,9 @@ Cada rol muestra:
     - **management**: Gestión de datos
   - Puede seleccionar múltiples permisos
 
+ <img width="396" height="606" alt="image" src="https://github.com/user-attachments/assets/4ffee7e6-98cd-484e-a122-617e6b07cf1f" />
+
+
 **Paso 4:** Haga clic en **"Create"** para crear el rol.
 
 **Paso 5:** El rol estará disponible para asignar a usuarios.
@@ -1011,9 +1097,13 @@ Cada rol muestra:
 
 **Paso 1:** En la tabla de roles, haga clic en el botón de permisos (icono de escudo) del rol que desea modificar.
 
+<img width="57" height="158" alt="image" src="https://github.com/user-attachments/assets/0e55c5bb-2fbf-4a0f-854f-c8f4828011af" />
+
 {Imagen del botón de permisos}
 
 **Paso 2:** Se abrirá un modal para gestionar los permisos.
+
+<img width="409" height="624" alt="image" src="https://github.com/user-attachments/assets/723fd768-029f-474d-a2a1-44ac55649fc6" />
 
 {Imagen del modal de gestión de permisos}
 
@@ -1047,9 +1137,13 @@ Cada rol muestra:
 
 **Paso 1:** En la tabla de roles, haga clic en el botón de editar (icono de lápiz) del rol que desea modificar.
 
+<img width="57" height="177" alt="image" src="https://github.com/user-attachments/assets/0970d45e-ffb4-4075-aab6-9a2f5e686e19" />
+
 {Imagen del botón de editar}
 
 **Paso 2:** Se abrirá un modal con los datos actuales del rol.
+
+<img width="283" height="327" alt="image" src="https://github.com/user-attachments/assets/b3cbd3d1-cdb0-425b-b0ee-600ac7415903" />
 
 {Imagen del modal de edición de rol}
 
@@ -1064,8 +1158,6 @@ Cada rol muestra:
 
 **Paso 1:** En la tabla de roles, haga clic en el botón de eliminar (icono de basura) del rol que desea eliminar.
 
-{Imagen del botón de eliminar}
-
 **Paso 2:** Se mostrará un mensaje de confirmación.
 
 **Paso 3:** Confirme la eliminación.
@@ -1077,6 +1169,8 @@ Cada rol muestra:
 **Paso 1:** Use el campo de búsqueda para filtrar roles por nombre.
 
 **Paso 2:** Los resultados se filtrarán automáticamente.
+
+<img width="1344" height="254" alt="image" src="https://github.com/user-attachments/assets/e686df98-5044-42b3-912a-87f638b6670a" />
 
 {Imagen del campo de búsqueda de roles}
 
@@ -1100,6 +1194,8 @@ Todos los datos se exportan en formato **CSV (Comma-Separated Values)**, que pue
 
 **Paso 2:** Haga clic en el botón **"Export All to CSV"**.
 
+<img width="215" height="72" alt="image" src="https://github.com/user-attachments/assets/ea1b8074-ad27-4f5b-b8b4-5bd9b8f05a4e" />
+
 {Imagen del botón de exportar todos los lotes}
 
 **Paso 3:** Se descargará un archivo CSV con todos los lotes que coincidan con los filtros aplicados.
@@ -1122,6 +1218,8 @@ Todos los datos se exportan en formato **CSV (Comma-Separated Values)**, que pue
 #### 7.2.2 Exportar un Lote Individual
 
 **Paso 1:** En la página de detalles del lote, haga clic en el botón **"Export to CSV"**.
+
+<img width="1349" height="130" alt="image" src="https://github.com/user-attachments/assets/13b2ac70-25b1-435a-a926-097e7fde51a0" />
 
 {Imagen del botón de exportar lote individual}
 
@@ -1409,7 +1507,7 @@ No, solo puede haber un lote activo a la vez. Debe detener o cerrar el lote actu
 
 ### 10.3 ¿Qué pasa si cierro accidentalmente un lote?
 
-Un lote cerrado no puede reabrirse. Asegúrese de que la producción esté completa antes de cerrar un lote. Si necesita continuar la producción, cree un nuevo lote.
+Solo el administrador del sistema puede cerrar un lote sin terminar. Asegúrese de que la producción esté completa antes de cerrar un lote.
 
 ### 10.4 ¿Los datos se guardan automáticamente?
 
@@ -1498,6 +1596,6 @@ Este manual cubre todas las funcionalidades principales del Sistema de Control d
 ---
 
 **Versión del Manual:** 1.0  
-**Fecha de Actualización:** Diciembre 2024  
-**Sistema:** Control de Calidad Industrial - Amphenol
+**Fecha de Actualización:** Noviembre 2025  
+**Sistema:** Control de Calidad Industrial - Amphenol By AxmeTech
 
