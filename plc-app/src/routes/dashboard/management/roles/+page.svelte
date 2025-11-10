@@ -134,12 +134,12 @@
 							</td>
 							<td>
 								<div class="flex flex-wrap gap-1">
-									{#each ((role as any).userRoles || []).slice(0, 3) as userRole}
+									{#each ((role as any).users || []).slice(0, 3) as userRole}
 										<span class="badge variant-soft-primary text-xs">{userRole.user.username}</span>
 									{/each}
-									{#if ((role as any).userRoles?.length || 0) > 3}
+									{#if ((role as any).users?.length || 0) > 3}
 										<span class="text-xs text-surface-600-400"
-											>+{((role as any).userRoles.length || 0) - 3} more</span
+											>+{((role as any).users.length || 0) - 3} more</span
 										>
 									{/if}
 								</div>
@@ -166,7 +166,7 @@
 										</button>
 									{/if}
 
-									{#if canDelete && ((role as any).userRoles?.length || 0) === 0}
+									{#if canDelete && ((role as any).users?.length || 0) === 0}
 										<form method="POST" action="?/deleteRole" use:enhance>
 											<input type="hidden" name="id" value={role.id} />
 											<button

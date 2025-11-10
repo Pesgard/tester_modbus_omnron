@@ -17,7 +17,7 @@ export const load: PageServerLoad = async (event) => {
 						permiso: true
 					}
 				},
-				userRoles: {
+				users: {
 					include: {
 						user: {
 							select: {

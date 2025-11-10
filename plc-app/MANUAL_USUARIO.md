@@ -1,0 +1,1511 @@
+# 📘 Manual de Usuario - Sistema de Control de Calidad Industrial
+
+## 📋 Tabla de Contenidos
+
+1. [Introducción](#introducción)
+2. [Acceso al Sistema](#acceso-al-sistema)
+3. [Dashboard Principal](#dashboard-principal)
+4. [Módulo de Producción](#módulo-de-producción)
+5. [Módulo de Historial](#módulo-de-historial)
+6. [Módulo de Gestión](#módulo-de-gestión)
+   - [Recetas](#recetas)
+   - [Lotes](#lotes)
+   - [Usuarios](#usuarios)
+   - [Roles y Permisos](#roles-y-permisos)
+7. [Exportación de Datos](#exportación-de-datos)
+8. [Solución de Problemas](#solución-de-problemas)
+9. [Glosario de Términos](#glosario-de-términos)
+
+---
+
+## 1. Introducción
+
+### 1.1 ¿Qué es este sistema?
+
+Este sistema de control de calidad industrial permite gestionar y monitorear la producción de cables en tiempo real, registrando cada pieza procesada, sus resultados de calidad, y generando reportes detallados para análisis y trazabilidad.
+
+### 1.2 Características Principales
+
+- ✅ **Monitoreo en Tiempo Real**: Visualización instantánea del estado de la línea de producción
+- ✅ **Control de Lotes**: Gestión completa de lotes de producción con objetivos y seguimiento
+- ✅ **Registro de Defectos**: Captura automática de imágenes de piezas defectuosas
+- ✅ **Reportes y Exportación**: Generación de reportes en formato CSV para análisis
+- ✅ **Gestión de Usuarios**: Control de acceso mediante roles y permisos
+- ✅ **Historial Completo**: Consulta de todos los lotes procesados con detalles completos
+
+### 1.3 Requisitos del Sistema
+
+- Navegador web moderno (Chrome, Firefox, Edge, Safari)
+- Conexión a internet o red local
+- Credenciales de acceso proporcionadas por el administrador
+
+---
+
+## 2. Acceso al Sistema
+
+### 2.1 Inicio de Sesión
+
+**Paso 1:** Abra su navegador web y acceda a la dirección del sistema proporcionada por su administrador.
+
+**Paso 2:** Se mostrará la pantalla de inicio de sesión.
+
+{Imagen del login del sistema mostrando los campos de usuario y contraseña, con el botón de inicio de sesión}
+
+**Paso 3:** Ingrese sus credenciales:
+- **Usuario**: Ingrese su nombre de usuario
+- **Contraseña**: Ingrese su contraseña
+
+**Paso 4:** Haga clic en el botón **"Iniciar Sesión"** o presione **Enter**.
+
+**Nota:** Si olvidó su contraseña, contacte al administrador del sistema.
+
+### 2.2 Pantalla de Carga
+
+Después de iniciar sesión, verá brevemente una pantalla de carga mientras el sistema prepara su sesión.
+
+{Imagen de la pantalla de carga con el spinner y mensaje de bienvenida}
+
+### 2.3 Primer Acceso
+
+Si es la primera vez que accede al sistema, será redirigido automáticamente al Dashboard Principal.
+
+---
+
+## 3. Dashboard Principal
+
+### 3.1 Vista General
+
+El Dashboard Principal es la pantalla de inicio del sistema y proporciona una vista general del estado del sistema.
+
+{Imagen del dashboard principal mostrando las tarjetas de estadísticas, lotes recientes y acceso rápido}
+
+### 3.2 Secciones del Dashboard
+
+#### 3.2.1 Encabezado de Bienvenida
+
+En la parte superior encontrará:
+- **Saludo personalizado** con su nombre de usuario
+- **Título del sistema**: "Sistema de Control de Calidad Industrial"
+- **Icono de fábrica** identificando el sistema
+
+{Imagen del encabezado de bienvenida con el saludo y nombre de usuario}
+
+#### 3.2.2 Tarjetas de Estadísticas
+
+El dashboard muestra 4 tarjetas principales con estadísticas del sistema:
+
+**1. Recetas Activas**
+- Muestra el total de recetas (modelos) configuradas en el sistema
+- Icono: Lista de verificación
+- Color: Azul (Primary)
+
+{Imagen de la tarjeta de Recetas Activas con el número total}
+
+**2. Lotes Activos**
+- Muestra la cantidad de lotes actualmente en producción
+- Icono: Indicador de actividad
+- Color: Amarillo (Warning)
+
+{Imagen de la tarjeta de Lotes Activos con el número actual}
+
+**3. Piezas OK**
+- Muestra el total acumulado de piezas aprobadas en todos los lotes
+- Icono: Check verde
+- Color: Verde (Success)
+
+{Imagen de la tarjeta de Piezas OK con el total acumulado}
+
+**4. Precisión del Sistema**
+- Muestra el porcentaje de precisión general del sistema
+- Icono: Objetivo
+- Color: Azul (Primary)
+
+{Imagen de la tarjeta de Precisión con el porcentaje}
+
+#### 3.2.3 Información del Lote Activo
+
+Si hay un lote en producción, se mostrará una tarjeta especial con:
+- **Nombre del lote**
+- **Receta (PPN)** asociada
+- **Progreso**: Piezas OK vs Objetivo
+- **Estado**: Activo, Pausado, etc.
+- **Botón de acceso rápido** a la página de producción
+
+{Imagen de la tarjeta de Lote Activo con toda la información}
+
+#### 3.2.4 Lotes Recientes
+
+Muestra una tabla con los últimos 5 lotes procesados, incluyendo:
+- Nombre del lote
+- Receta (PPN)
+- Estado (Abierto, Cerrado, Pausado)
+- Piezas OK y NOK
+- Fecha de inicio
+- Creado por
+
+{Imagen de la tabla de Lotes Recientes}
+
+#### 3.2.5 Acceso Rápido
+
+Enlaces rápidos a las secciones principales:
+- **Producción**: Control de línea en tiempo real
+- **Historial**: Ver todos los lotes completados
+- **Gestión**: Administrar recetas, lotes, usuarios y roles
+
+{Imagen de los botones de acceso rápido}
+
+### 3.3 Navegación
+
+#### 3.3.1 Barra Lateral (Sidebar)
+
+La barra lateral izquierda contiene el menú principal de navegación:
+
+{Imagen de la barra lateral con todos los elementos del menú}
+
+**Elementos del Menú:**
+- **🏠 Dashboard**: Regresa a la página principal
+- **🏭 Production**: Control de producción en tiempo real
+- **📊 History**: Historial de lotes completados
+- **⚙️ Management**: Gestión de recetas, lotes, usuarios y roles
+- **🚪 Logout**: Cerrar sesión
+
+**Nota:** Solo verá las opciones para las que tiene permisos. Si no tiene acceso a una sección, no aparecerá en el menú.
+
+#### 3.3.2 Cerrar Sesión
+
+**Paso 1:** Haga clic en el botón **"Logout"** en la parte inferior de la barra lateral.
+
+**Paso 2:** Se cerrará su sesión y será redirigido a la pantalla de inicio de sesión.
+
+{Imagen del botón de logout en la barra lateral}
+
+---
+
+## 4. Módulo de Producción
+
+### 4.1 Acceso al Módulo
+
+**Paso 1:** Desde el Dashboard Principal, haga clic en **"Production"** en la barra lateral o en el botón de acceso rápido.
+
+**Paso 2:** Se abrirá la página de Control de Producción.
+
+{Imagen de la página de producción mostrando el estado de la línea y controles}
+
+### 4.2 Vista General de Producción
+
+La página de producción muestra información en tiempo real sobre el estado de la línea de producción.
+
+{Imagen completa de la página de producción con todas las secciones visibles}
+
+### 4.3 Secciones de la Página de Producción
+
+#### 4.3.1 Estado de la Línea
+
+En la parte superior se muestra el estado actual de la línea:
+
+**Estados Posibles:**
+- **🟢 Activo**: La línea está en producción
+- **🟡 Pausado**: La producción está pausada
+- **🔴 Detenido**: La producción está detenida
+- **🔵 Mantenimiento**: La línea está en modo mantenimiento
+
+{Imagen del indicador de estado de la línea con los diferentes estados}
+
+#### 4.3.2 Información del Lote Activo
+
+Si hay un lote en producción, se muestra:
+- **Nombre del lote**
+- **Receta (PPN)** asociada
+- **Model ID** del PLC
+- **Objetivo de piezas OK**
+- **Progreso actual**
+
+{Imagen de la sección de información del lote activo}
+
+#### 4.3.3 Métricas en Tiempo Real
+
+Se muestran 4 métricas principales:
+
+**1. Tasa de Producción**
+- Piezas procesadas por minuto
+- Icono: Velocímetro
+
+{Imagen de la tarjeta de Tasa de Producción}
+
+**2. Eficiencia**
+- Porcentaje de eficiencia de la línea
+- Icono: Gráfico de barras
+
+{Imagen de la tarjeta de Eficiencia}
+
+**3. Precisión**
+- Porcentaje de piezas OK vs total
+- Icono: Objetivo
+
+{Imagen de la tarjeta de Precisión}
+
+**4. Total de Piezas**
+- Contador total de piezas procesadas
+- Icono: Contador
+
+{Imagen de la tarjeta de Total de Piezas}
+
+#### 4.3.4 Contadores de Piezas
+
+Se muestran dos contadores grandes:
+- **Piezas OK**: Contador verde con el total de piezas aprobadas
+- **Piezas NOK**: Contador rojo con el total de piezas rechazadas
+
+{Imagen de los contadores grandes de Piezas OK y NOK}
+
+#### 4.3.5 Datos del PLC
+
+Sección que muestra los datos en bruto recibidos del PLC:
+- **Estado General**: OK, FALLA, MANTENIMIENTO
+- **Estado de Pieza**: OK, NOK
+- **Código de Falla**: Si aplica
+- **Model ID**: ID del modelo actual
+- **Estado de Cámara**: Activa/Inactiva
+- **Estado Eléctrico**: OK/Error
+- **Bandera de Listo**: Sí/No
+
+{Imagen de la sección de Datos del PLC con todos los campos}
+
+#### 4.3.6 Piezas Recientes
+
+Tabla que muestra las últimas piezas procesadas con:
+- **Índice**: Número de pieza
+- **Resultado**: OK o NOK
+- **Código de Falla**: Si aplica
+- **Timestamp**: Fecha y hora de procesamiento
+- **Imagen**: Si tiene imagen asociada
+
+{Imagen de la tabla de Piezas Recientes}
+
+### 4.4 Iniciar Producción
+
+**Paso 1:** Verifique que no haya un lote activo. Si hay uno, debe detenerlo primero.
+
+**Paso 2:** Haga clic en el botón **"Iniciar Producción"** (si tiene permisos).
+
+**Paso 3:** Se abrirá un modal para seleccionar el lote.
+
+{Imagen del modal de selección de lote para iniciar producción}
+
+**Paso 4:** Seleccione el lote que desea iniciar de la lista desplegable.
+
+**Paso 5:** Verifique la información del lote:
+- Nombre del lote
+- Receta (PPN)
+- Model ID del PLC
+- Objetivo de piezas OK
+
+**Paso 6:** Haga clic en **"Confirmar"** para iniciar la producción.
+
+**Paso 7:** El sistema iniciará la producción y comenzará a recibir datos del PLC.
+
+{Imagen del modal de confirmación de inicio de producción}
+
+### 4.5 Detener Producción
+
+**Paso 1:** Haga clic en el botón **"Detener Producción"** (si tiene permisos).
+
+**Paso 2:** Se abrirá un modal de confirmación.
+
+{Imagen del modal de confirmación para detener producción}
+
+**Paso 3:** Revise la información:
+- Nombre del lote que se detendrá
+- Piezas procesadas hasta el momento
+- Advertencia sobre la acción
+
+**Paso 4:** Haga clic en **"Confirmar"** para detener la producción o **"Cancelar"** para continuar.
+
+**Nota:** Al detener la producción, el lote se marcará como pausado y podrá reanudarse más tarde.
+
+### 4.6 Manejo de Errores
+
+#### 4.6.1 Modal de Error de Pieza
+
+Cuando se detecta una pieza defectuosa, aparece automáticamente un modal de error:
+
+{Imagen del modal de error mostrando la pieza defectuosa}
+
+**Información mostrada:**
+- **Mensaje de error**: Descripción del problema
+- **Imagen del defecto**: Imagen capturada de la pieza defectuosa
+- **Código de falla**: Código específico del tipo de falla
+- **Índice de pieza**: Número de pieza defectuosa
+- **Lote afectado**: Nombre del lote en producción
+
+**Acciones disponibles:**
+- **"Revisar"**: Cierra el modal y continúa la producción
+- **"Detener Producción"**: Detiene la producción inmediatamente
+
+#### 4.6.2 Modal de Paro de Emergencia
+
+Si el PLC envía una señal de mantenimiento, aparece un modal de paro de emergencia:
+
+{Imagen del modal de paro de emergencia con el motivo de mantenimiento}
+
+**Información mostrada:**
+- **Motivo**: MANTENIMIENTO
+- **Lote afectado**: Nombre del lote que se detuvo
+- **Mensaje**: Explicación del paro
+- **Timestamp**: Fecha y hora del evento
+
+**Acciones:**
+- **"Entendido"**: Cierra el modal
+- La producción se detiene automáticamente y debe reiniciarse manualmente después del mantenimiento
+
+#### 4.6.3 Modal de Error de Model ID
+
+Si el PLC envía un Model ID que no coincide con el lote activo, aparece un modal de error:
+
+{Imagen del modal de error de Model ID mostrando el mismatch}
+
+**Información mostrada:**
+- **Model ID Esperado**: El ID correcto para el lote activo
+- **Model ID Recibido**: El ID que envió el PLC
+- **Lote afectado**: Nombre del lote
+- **Receta (PPN)**: Receta asociada
+- **Tabla de referencia**: Lista de todos los Model IDs válidos (1-7)
+
+**Importante:** La pieza NO se guarda en la base de datos para mantener la integridad de los datos.
+
+**Acción requerida:**
+- Verificar la configuración del PLC
+- Asegurarse de que el PLC esté enviando el Model ID correcto
+
+### 4.7 Actualización en Tiempo Real
+
+La página de producción se actualiza automáticamente cada segundo mostrando:
+- Nuevas piezas procesadas
+- Cambios en las métricas
+- Actualización del estado del PLC
+- Nuevos errores detectados
+
+**Nota:** No es necesario refrescar la página manualmente.
+
+---
+
+## 5. Módulo de Historial
+
+### 5.1 Acceso al Módulo
+
+**Paso 1:** Desde el Dashboard Principal o la barra lateral, haga clic en **"History"**.
+
+**Paso 2:** Se abrirá la página de Historial de Lotes.
+
+{Imagen de la página de historial mostrando la lista de lotes}
+
+### 5.2 Vista General del Historial
+
+La página de historial muestra todos los lotes que han sido procesados o están pausados.
+
+{Imagen completa de la página de historial con filtros y tabla}
+
+### 5.3 Funcionalidades del Historial
+
+#### 5.3.1 Búsqueda de Lotes
+
+**Paso 1:** En el campo de búsqueda, ingrese el nombre del lote o el PPN de la receta.
+
+**Paso 2:** Los resultados se filtrarán automáticamente mientras escribe.
+
+{Imagen del campo de búsqueda con texto de ejemplo}
+
+#### 5.3.2 Filtro por Estado
+
+**Paso 1:** Haga clic en el menú desplegable de estado.
+
+**Paso 2:** Seleccione el estado deseado:
+- **Todos**: Muestra todos los lotes
+- **Cerrados**: Solo lotes completados
+- **Pausados**: Solo lotes pausados
+
+{Imagen del filtro de estado con las opciones}
+
+#### 5.3.3 Tabla de Lotes
+
+La tabla muestra la siguiente información para cada lote:
+
+**Columnas:**
+- **Nombre**: Nombre del lote
+- **Receta (PPN)**: Part Number de la receta
+- **Estado**: OPEN, CLOSED, PAUSED
+- **Piezas OK**: Cantidad de piezas aprobadas
+- **Piezas NOK**: Cantidad de piezas rechazadas
+- **Total**: Suma de piezas OK y NOK
+- **Precisión**: Porcentaje de precisión
+- **Fecha de Inicio**: Cuándo se inició el lote
+- **Fecha de Cierre**: Cuándo se cerró (si aplica)
+- **Creado por**: Usuario que creó el lote
+- **Acciones**: Botón para ver detalles
+
+{Imagen de la tabla de lotes con todas las columnas visibles}
+
+#### 5.3.4 Ver Detalles de un Lote
+
+**Paso 1:** En la columna "Acciones", haga clic en el botón **"View Details"** del lote que desea ver.
+
+**Paso 2:** Se abrirá la página de detalles del lote.
+
+{Imagen del botón "View Details" en la tabla}
+
+### 5.4 Página de Detalles del Lote
+
+La página de detalles muestra información completa sobre un lote específico.
+
+{Imagen completa de la página de detalles del lote}
+
+#### 5.4.1 Información General del Lote
+
+Se muestra en la parte superior:
+- **Nombre del lote**
+- **Receta (PPN)** asociada
+- **Estado actual**: OPEN, CLOSED, PAUSED
+- **Fecha de inicio**
+- **Fecha de cierre** (si aplica)
+- **Creado por**: Usuario que creó el lote
+
+{Imagen de la sección de información general del lote}
+
+#### 5.4.2 Estadísticas del Lote
+
+Se muestran 4 tarjetas con estadísticas:
+
+**1. Piezas OK**
+- Total de piezas aprobadas
+- Icono: Check verde
+- Color: Verde
+
+{Imagen de la tarjeta de Piezas OK}
+
+**2. Piezas NOK**
+- Total de piezas rechazadas
+- Icono: X rojo
+- Color: Rojo
+
+{Imagen de la tarjeta de Piezas NOK}
+
+**3. Total de Piezas**
+- Suma de piezas OK y NOK
+- Icono: Paquete
+- Color: Azul
+
+{Imagen de la tarjeta de Total de Piezas}
+
+**4. Precisión**
+- Porcentaje de precisión del lote
+- Icono: Objetivo
+- Color: Azul
+
+{Imagen de la tarjeta de Precisión}
+
+#### 5.4.3 Galería de Imágenes de Defectos
+
+Si el lote tiene piezas defectuosas con imágenes, se muestra una galería:
+
+{Imagen de la galería de imágenes de defectos}
+
+**Funcionalidades:**
+- **Vista en miniatura**: Cada imagen se muestra como una miniatura
+- **Clic para ampliar**: Haga clic en una imagen para verla en tamaño completo
+- **Información de la imagen**: Al pasar el mouse, se muestra el tipo de falla y timestamp
+
+**Paso 1:** Haga clic en una imagen de la galería.
+
+**Paso 2:** Se abrirá un modal con la imagen en tamaño completo.
+
+{Imagen del modal de imagen ampliada}
+
+**Paso 3:** En el modal puede ver:
+- Imagen en alta resolución
+- Tipo de falla
+- Timestamp de captura
+- Botón para cerrar
+
+**Paso 4:** Haga clic fuera del modal o en el botón X para cerrar.
+
+#### 5.4.4 Tabla de Piezas
+
+Tabla completa con todas las piezas del lote:
+
+**Columnas:**
+- **Índice**: Número de pieza
+- **Resultado**: OK o NOK
+- **Código de Falla**: Si aplica
+- **Timestamp**: Fecha y hora de procesamiento
+- **Tiene Imagen**: Indicador si hay imagen asociada
+
+{Imagen de la tabla de piezas con todas las columnas}
+
+**Funcionalidades:**
+- **Ordenamiento**: Haga clic en el encabezado de una columna para ordenar
+- **Scroll**: Si hay muchas piezas, puede hacer scroll vertical
+- **Búsqueda**: Use Ctrl+F para buscar texto específico
+
+### 5.5 Exportación de Datos
+
+#### 5.5.1 Exportar un Lote Individual
+
+**Paso 1:** En la página de detalles del lote, haga clic en el botón **"Export to CSV"**.
+
+{Imagen del botón "Export to CSV" en la página de detalles}
+
+**Paso 2:** Se descargará automáticamente un archivo CSV con:
+- Información general del lote
+- Estadísticas completas
+- Lista detallada de todas las piezas
+- Información de imágenes asociadas
+
+**Paso 3:** El archivo se guardará en su carpeta de descargas con el nombre: `lote_{nombre_lote}_{fecha}.csv`
+
+#### 5.5.2 Exportar Todos los Lotes
+
+**Paso 1:** En la página principal de historial, haga clic en el botón **"Export All to CSV"**.
+
+{Imagen del botón "Export All to CSV" en la página de historial}
+
+**Paso 2:** Se descargará un archivo CSV con todos los lotes filtrados (según los filtros aplicados).
+
+**Paso 3:** El archivo incluirá:
+- Información de todos los lotes
+- Estadísticas de cada lote
+- Fecha de generación del reporte
+
+**Paso 4:** El archivo se guardará con el nombre: `lotes_{fecha_hora}.csv`
+
+**Nota:** Los archivos CSV pueden abrirse en Excel, Google Sheets o cualquier editor de texto.
+
+---
+
+## 6. Módulo de Gestión
+
+### 6.1 Acceso al Módulo
+
+**Paso 1:** Desde el Dashboard Principal o la barra lateral, haga clic en **"Management"**.
+
+**Paso 2:** Se abrirá la página principal de Gestión.
+
+{Imagen de la página principal de gestión con las 4 secciones}
+
+### 6.2 Secciones de Gestión
+
+La página principal muestra 4 secciones principales:
+
+1. **📖 Recipes (Recetas)**: Gestión de recetas/modelos
+2. **📦 Lots (Lotes)**: Gestión de lotes de producción
+3. **👥 Users (Usuarios)**: Gestión de usuarios del sistema
+4. **🛡️ Roles & Permissions (Roles y Permisos)**: Configuración de roles y permisos
+
+{Imagen de las 4 tarjetas de secciones de gestión}
+
+**Nota:** Solo verá las secciones para las que tiene permisos de acceso.
+
+---
+
+## 6.3 Recetas
+
+### 6.3.1 Acceso a Recetas
+
+**Paso 1:** En la página de Gestión, haga clic en la tarjeta **"Recipes"**.
+
+**Paso 2:** Se abrirá la página de gestión de recetas.
+
+{Imagen de la página de recetas con la tabla de recetas}
+
+### 6.3.2 Vista de Recetas
+
+La página muestra una tabla con todas las recetas configuradas en el sistema.
+
+{Imagen completa de la página de recetas con tabla y controles}
+
+#### 6.3.3 Información de las Recetas
+
+Cada receta muestra:
+- **Model ID**: ID del modelo para el PLC (1-7)
+- **PPN (Part Number)**: Número de parte único
+- **Cable NP**: Número de cable
+- **Descripción**: Descripción del artículo
+- **Conductores**: Cantidad de conductores
+- **Terminales**: Terminales L1, L2, L3, L4, L5
+- **Estado**: Activa/Inactiva
+- **Acciones**: Botones para editar o eliminar
+
+{Imagen de la tabla de recetas con todas las columnas}
+
+### 6.3.4 Crear una Nueva Receta
+
+**Paso 1:** Haga clic en el botón **"New Recipe"** (si tiene permisos).
+
+{Imagen del botón "New Recipe"}
+
+**Paso 2:** Se abrirá un modal para crear la receta.
+
+{Imagen del modal de creación de receta}
+
+**Paso 3:** Complete los siguientes campos:
+
+- **Model ID** (Requerido):
+  - Seleccione un ID del 1 al 7
+  - Cada ID debe ser único
+  - Este ID se envía al PLC para identificar el modelo
+
+- **PPN (Part Number)** (Requerido):
+  - Ingrese el número de parte único
+  - Ejemplo: "1020746", "1020746-02", "698330001"
+  - Debe ser único en el sistema
+
+- **Cable NP** (Requerido):
+  - Ingrese el número de cable
+  - Ejemplo: "CABLE-001"
+
+- **Quantity** (Requerido):
+  - Cantidad en pies
+  - Ejemplo: 100.0
+
+- **Unit of Measure** (Requerido):
+  - Unidad de medida
+  - Generalmente "FT" (Feet)
+
+- **Item Description** (Requerido):
+  - Descripción del artículo
+  - Ejemplo: "Cable 2 conductores"
+
+- **Cantidad de Conductores** (Requerido):
+  - Número de conductores
+  - Ejemplo: 2 o 4
+
+- **Terminales** (Opcional):
+  - L1 Terminal
+  - L2 Terminal
+  - L3 Terminal
+  - L4 Terminal
+  - L5 Terminal
+
+- **Estado**:
+  - Marque "Activa" para habilitar la receta
+  - Desmarque para deshabilitar
+
+**Paso 4:** Haga clic en **"Create"** para guardar la receta.
+
+**Paso 5:** Si hay errores, se mostrarán mensajes de validación.
+
+### 6.3.5 Editar una Receta
+
+**Paso 1:** En la tabla de recetas, haga clic en el botón de editar (icono de lápiz) de la receta que desea modificar.
+
+{Imagen del botón de editar en la tabla}
+
+**Paso 2:** Se abrirá un modal con los datos actuales de la receta.
+
+{Imagen del modal de edición de receta}
+
+**Paso 3:** Modifique los campos que desee cambiar.
+
+**Paso 4:** Haga clic en **"Update"** para guardar los cambios.
+
+**Nota:** El Model ID y el PPN no pueden modificarse una vez creada la receta.
+
+### 6.3.6 Eliminar una Receta
+
+**Paso 1:** En la tabla de recetas, haga clic en el botón de eliminar (icono de basura) de la receta que desea eliminar.
+
+{Imagen del botón de eliminar}
+
+**Paso 2:** Se mostrará un mensaje de confirmación.
+
+**Paso 3:** Confirme la eliminación.
+
+**Advertencia:** No se puede eliminar una receta que esté asociada a lotes existentes.
+
+### 6.3.7 Buscar Recetas
+
+**Paso 1:** Use el campo de búsqueda para filtrar recetas por:
+- PPN (Part Number)
+- Descripción
+- Cable NP
+
+**Paso 2:** Los resultados se filtrarán automáticamente mientras escribe.
+
+{Imagen del campo de búsqueda de recetas}
+
+---
+
+## 6.4 Lotes
+
+### 6.4.1 Acceso a Lotes
+
+**Paso 1:** En la página de Gestión, haga clic en la tarjeta **"Lots"**.
+
+**Paso 2:** Se abrirá la página de gestión de lotes.
+
+{Imagen de la página de lotes con la tabla}
+
+### 6.4.2 Vista de Lotes
+
+La página muestra una tabla con todos los lotes del sistema.
+
+{Imagen completa de la página de lotes}
+
+#### 6.4.3 Información de los Lotes
+
+Cada lote muestra:
+- **Nombre**: Nombre único del lote
+- **Receta**: PPN de la receta asociada
+- **Estado**: OPEN, CLOSED, PAUSED
+- **Piezas OK**: Cantidad de piezas aprobadas
+- **Piezas NOK**: Cantidad de piezas rechazadas
+- **Objetivo**: Meta de piezas OK
+- **Fecha de Inicio**: Cuándo se inició
+- **Fecha de Cierre**: Cuándo se cerró (si aplica)
+- **Creado por**: Usuario que creó el lote
+- **Acciones**: Botones para editar o eliminar
+
+{Imagen de la tabla de lotes con todas las columnas}
+
+### 6.4.4 Crear un Nuevo Lote
+
+**Paso 1:** Haga clic en el botón **"New Lot"** (si tiene permisos).
+
+{Imagen del botón "New Lot"}
+
+**Paso 2:** Se abrirá un modal para crear el lote.
+
+{Imagen del modal de creación de lote}
+
+**Paso 3:** Complete los siguientes campos:
+
+- **Nombre del Lote** (Requerido):
+  - Ingrese un nombre único para el lote
+  - Ejemplo: "LOTE-2024-001"
+  - No puede duplicarse
+
+- **Receta** (Requerido):
+  - Seleccione la receta de la lista desplegable
+  - Solo se muestran recetas activas
+  - El Model ID se asignará automáticamente
+
+- **Objetivo de Piezas OK** (Requerido):
+  - Ingrese la cantidad objetivo de piezas aprobadas
+  - Ejemplo: 1000
+  - Debe ser un número positivo
+
+**Paso 4:** Haga clic en **"Create"** para crear el lote.
+
+**Paso 5:** El lote se creará con estado "OPEN" y estará listo para iniciar producción.
+
+### 6.4.5 Editar un Lote
+
+**Paso 1:** En la tabla de lotes, haga clic en el botón de editar (icono de lápiz) del lote que desea modificar.
+
+{Imagen del botón de editar}
+
+**Paso 2:** Se abrirá un modal con los datos actuales del lote.
+
+{Imagen del modal de edición de lote}
+
+**Paso 3:** Puede modificar:
+- **Objetivo de Piezas OK**: Ajustar la meta
+- **Estado**: Cambiar entre OPEN, CLOSED, PAUSED
+
+**Paso 4:** Haga clic en **"Update"** para guardar los cambios.
+
+**Nota:** El nombre del lote y la receta no pueden modificarse una vez creado el lote.
+
+### 6.4.6 Cerrar un Lote
+
+**Paso 1:** Edite el lote que desea cerrar.
+
+**Paso 2:** En el campo "Estado", seleccione **"CLOSED"**.
+
+**Paso 3:** Guarde los cambios.
+
+**Nota:** Un lote cerrado no puede reabrirse. Asegúrese de que la producción esté completa antes de cerrarlo.
+
+### 6.4.7 Eliminar un Lote
+
+**Paso 1:** En la tabla de lotes, haga clic en el botón de eliminar (icono de basura) del lote que desea eliminar.
+
+{Imagen del botón de eliminar}
+
+**Paso 2:** Se mostrará un mensaje de confirmación.
+
+**Paso 3:** Confirme la eliminación.
+
+**Advertencia:** Eliminar un lote también eliminará todas las piezas e imágenes asociadas. Esta acción no se puede deshacer.
+
+### 6.4.8 Buscar Lotes
+
+**Paso 1:** Use el campo de búsqueda para filtrar lotes por:
+- Nombre del lote
+- PPN de la receta
+
+**Paso 2:** Los resultados se filtrarán automáticamente.
+
+{Imagen del campo de búsqueda de lotes}
+
+---
+
+## 6.5 Usuarios
+
+### 6.5.1 Acceso a Usuarios
+
+**Paso 1:** En la página de Gestión, haga clic en la tarjeta **"Users"**.
+
+**Paso 2:** Se abrirá la página de gestión de usuarios.
+
+{Imagen de la página de usuarios con la tabla}
+
+### 6.5.2 Vista de Usuarios
+
+La página muestra una tabla con todos los usuarios del sistema.
+
+{Imagen completa de la página de usuarios}
+
+#### 6.5.3 Información de los Usuarios
+
+Cada usuario muestra:
+- **Usuario**: Nombre de usuario
+- **Estado**: Activo/Inactivo
+- **Roles**: Roles asignados
+- **Fecha de Creación**: Cuándo se creó la cuenta
+- **Acciones**: Botones para editar o eliminar
+
+{Imagen de la tabla de usuarios con todas las columnas}
+
+### 6.5.4 Crear un Nuevo Usuario
+
+**Paso 1:** Haga clic en el botón **"New User"** (si tiene permisos).
+
+{Imagen del botón "New User"}
+
+**Paso 2:** Se abrirá un modal para crear el usuario.
+
+{Imagen del modal de creación de usuario}
+
+**Paso 3:** Complete los siguientes campos:
+
+- **Usuario** (Requerido):
+  - Ingrese un nombre de usuario único
+  - Ejemplo: "operador01"
+  - No puede duplicarse
+
+- **Contraseña** (Requerido):
+  - Ingrese una contraseña segura
+  - Mínimo 6 caracteres recomendado
+  - Se mostrará/ocultará con el icono de ojo
+
+- **Confirmar Contraseña** (Requerido):
+  - Ingrese la misma contraseña para confirmar
+
+- **Roles** (Requerido):
+  - Seleccione uno o más roles de la lista
+  - Los roles determinan los permisos del usuario
+  - Puede seleccionar múltiples roles
+
+- **Estado**:
+  - Marque "Activo" para habilitar el usuario
+  - Desmarque para deshabilitar (el usuario no podrá iniciar sesión)
+
+**Paso 4:** Haga clic en **"Create"** para crear el usuario.
+
+**Paso 5:** El usuario podrá iniciar sesión inmediatamente si está activo.
+
+### 6.5.5 Editar un Usuario
+
+**Paso 1:** En la tabla de usuarios, haga clic en el botón de editar (icono de lápiz) del usuario que desea modificar.
+
+{Imagen del botón de editar}
+
+**Paso 2:** Se abrirá un modal con los datos actuales del usuario.
+
+{Imagen del modal de edición de usuario}
+
+**Paso 3:** Puede modificar:
+- **Contraseña**: Dejar en blanco para mantener la actual, o ingresar una nueva
+- **Roles**: Agregar o quitar roles
+- **Estado**: Activar o desactivar el usuario
+
+**Paso 4:** Haga clic en **"Update"** para guardar los cambios.
+
+**Nota:** El nombre de usuario no puede modificarse una vez creado.
+
+### 6.5.6 Eliminar un Usuario
+
+**Paso 1:** En la tabla de usuarios, haga clic en el botón de eliminar (icono de basura) del usuario que desea eliminar.
+
+{Imagen del botón de eliminar}
+
+**Paso 2:** Se mostrará un mensaje de confirmación.
+
+**Paso 3:** Confirme la eliminación.
+
+**Advertencia:** Eliminar un usuario también eliminará todas sus sesiones activas. Esta acción no se puede deshacer.
+
+### 6.5.7 Buscar Usuarios
+
+**Paso 1:** Use el campo de búsqueda para filtrar usuarios por nombre de usuario.
+
+**Paso 2:** Los resultados se filtrarán automáticamente.
+
+{Imagen del campo de búsqueda de usuarios}
+
+---
+
+## 6.6 Roles y Permisos
+
+### 6.6.1 Acceso a Roles y Permisos
+
+**Paso 1:** En la página de Gestión, haga clic en la tarjeta **"Roles & Permissions"**.
+
+**Paso 2:** Se abrirá la página de gestión de roles.
+
+{Imagen de la página de roles con la tabla}
+
+### 6.6.2 Vista de Roles
+
+La página muestra una tabla con todos los roles configurados en el sistema.
+
+{Imagen completa de la página de roles}
+
+#### 6.6.3 Información de los Roles
+
+Cada rol muestra:
+- **Nombre del Rol**: Nombre único del rol
+- **Descripción**: Descripción del rol
+- **Permisos**: Cantidad de permisos asignados
+- **Usuarios**: Usuarios que tienen este rol asignado
+- **Acciones**: Botones para gestionar permisos, editar o eliminar
+
+{Imagen de la tabla de roles con todas las columnas}
+
+### 6.6.4 Crear un Nuevo Rol
+
+**Paso 1:** Haga clic en el botón **"New Role"** (si tiene permisos).
+
+{Imagen del botón "New Role"}
+
+**Paso 2:** Se abrirá un modal para crear el rol.
+
+{Imagen del modal de creación de rol}
+
+**Paso 3:** Complete los siguientes campos:
+
+- **Nombre del Rol** (Requerido):
+  - Ingrese un nombre único para el rol
+  - Ejemplo: "Operador", "Supervisor", "Administrador"
+  - No puede duplicarse
+
+- **Descripción** (Requerido):
+  - Ingrese una descripción del rol
+  - Ejemplo: "Rol para operadores de línea de producción"
+
+- **Permisos** (Opcional):
+  - Seleccione los permisos que desea asignar al rol
+  - Los permisos están organizados por categorías:
+    - **production**: Control de producción
+    - **history**: Acceso al historial
+    - **management**: Gestión de datos
+  - Puede seleccionar múltiples permisos
+
+**Paso 4:** Haga clic en **"Create"** para crear el rol.
+
+**Paso 5:** El rol estará disponible para asignar a usuarios.
+
+### 6.6.5 Gestionar Permisos de un Rol
+
+**Paso 1:** En la tabla de roles, haga clic en el botón de permisos (icono de escudo) del rol que desea modificar.
+
+{Imagen del botón de permisos}
+
+**Paso 2:** Se abrirá un modal para gestionar los permisos.
+
+{Imagen del modal de gestión de permisos}
+
+**Paso 3:** Los permisos están organizados por categorías:
+
+**Categoría: Production**
+- `production.ver`: Ver página de producción
+- `production.control.start`: Iniciar producción
+- `production.control.stop`: Detener producción
+- `production.metrics.ver`: Ver métricas
+
+**Categoría: History**
+- `history.ver`: Ver historial de lotes
+- `history.lotes.detalles`: Ver detalles de lotes
+- `history.lotes.exportar`: Exportar datos a CSV
+
+**Categoría: Management**
+- `management.ver`: Acceder a gestión
+- `management.recetas.*`: Gestión completa de recetas
+- `management.lotes.*`: Gestión completa de lotes
+- `management.usuarios.*`: Gestión completa de usuarios
+- `management.roles.*`: Gestión completa de roles
+
+**Paso 4:** Marque o desmarque los permisos que desea asignar o quitar.
+
+**Paso 5:** Use el filtro de categoría para encontrar permisos específicos.
+
+**Paso 6:** Haga clic en **"Update Permissions"** para guardar los cambios.
+
+### 6.6.6 Editar un Rol
+
+**Paso 1:** En la tabla de roles, haga clic en el botón de editar (icono de lápiz) del rol que desea modificar.
+
+{Imagen del botón de editar}
+
+**Paso 2:** Se abrirá un modal con los datos actuales del rol.
+
+{Imagen del modal de edición de rol}
+
+**Paso 3:** Puede modificar:
+- **Descripción**: Cambiar la descripción del rol
+
+**Paso 4:** Haga clic en **"Update"** para guardar los cambios.
+
+**Nota:** El nombre del rol no puede modificarse una vez creado.
+
+### 6.6.7 Eliminar un Rol
+
+**Paso 1:** En la tabla de roles, haga clic en el botón de eliminar (icono de basura) del rol que desea eliminar.
+
+{Imagen del botón de eliminar}
+
+**Paso 2:** Se mostrará un mensaje de confirmación.
+
+**Paso 3:** Confirme la eliminación.
+
+**Advertencia:** No se puede eliminar un rol que tenga usuarios asignados. Primero debe quitar el rol de todos los usuarios.
+
+### 6.6.8 Buscar Roles
+
+**Paso 1:** Use el campo de búsqueda para filtrar roles por nombre.
+
+**Paso 2:** Los resultados se filtrarán automáticamente.
+
+{Imagen del campo de búsqueda de roles}
+
+---
+
+## 7. Exportación de Datos
+
+### 7.1 Formato de Exportación
+
+Todos los datos se exportan en formato **CSV (Comma-Separated Values)**, que puede abrirse en:
+- Microsoft Excel
+- Google Sheets
+- LibreOffice Calc
+- Cualquier editor de texto
+
+### 7.2 Exportar desde Historial
+
+#### 7.2.1 Exportar Todos los Lotes Filtrados
+
+**Paso 1:** En la página de Historial, aplique los filtros deseados (búsqueda y estado).
+
+**Paso 2:** Haga clic en el botón **"Export All to CSV"**.
+
+{Imagen del botón de exportar todos los lotes}
+
+**Paso 3:** Se descargará un archivo CSV con todos los lotes que coincidan con los filtros aplicados.
+
+**Paso 4:** El archivo incluirá:
+- Encabezado con fecha de generación
+- Información de cada lote:
+  - Nombre del lote
+  - PPN de la receta
+  - Descripción
+  - Estado
+  - Piezas OK
+  - Piezas NOK
+  - Total
+  - Precisión
+  - Creado por
+  - Fecha de inicio
+  - Fecha de cierre
+
+#### 7.2.2 Exportar un Lote Individual
+
+**Paso 1:** En la página de detalles del lote, haga clic en el botón **"Export to CSV"**.
+
+{Imagen del botón de exportar lote individual}
+
+**Paso 2:** Se descargará un archivo CSV con información detallada del lote.
+
+**Paso 3:** El archivo incluirá:
+- Información general del lote
+- Estadísticas completas
+- Lista detallada de todas las piezas con:
+  - Índice
+  - Resultado (OK/NOK)
+  - Código de falla
+  - Timestamp
+  - Información de imágenes asociadas
+
+### 7.3 Ubicación de Archivos Exportados
+
+Los archivos se descargan automáticamente en la carpeta de descargas de su navegador:
+- **Windows**: `C:\Users\[Usuario]\Downloads`
+- **Mac**: `~/Downloads`
+- **Linux**: `~/Downloads`
+
+### 7.4 Nombres de Archivos
+
+Los archivos se nombran automáticamente con el siguiente formato:
+- **Todos los lotes**: `lotes_YYYYMMDD_HHMMSS.csv`
+- **Lote individual**: `lote_[nombre_lote]_YYYYMMDD_HHMMSS.csv`
+
+Ejemplo: `lotes_20241215_143022.csv`
+
+---
+
+## 8. Solución de Problemas
+
+### 8.1 Problemas de Inicio de Sesión
+
+#### 8.1.1 No Puedo Iniciar Sesión
+
+**Síntomas:**
+- Mensaje de error al intentar iniciar sesión
+- Credenciales no reconocidas
+
+**Soluciones:**
+1. Verifique que su nombre de usuario y contraseña sean correctos
+2. Asegúrese de que no haya espacios adicionales
+3. Verifique que la tecla "Bloq Mayús" no esté activada
+4. Contacte al administrador si olvidó su contraseña
+
+#### 8.1.2 Sesión Expirada
+
+**Síntomas:**
+- Redirigido automáticamente al login
+- Mensaje de sesión expirada
+
+**Soluciones:**
+1. Inicie sesión nuevamente
+2. Si el problema persiste, contacte al administrador
+
+### 8.2 Problemas de Producción
+
+#### 8.2.1 No Puedo Iniciar Producción
+
+**Síntomas:**
+- El botón "Iniciar Producción" no aparece o está deshabilitado
+- Error al intentar iniciar producción
+
+**Soluciones:**
+1. Verifique que tenga el permiso `production.control.start`
+2. Asegúrese de que no haya otro lote activo
+3. Verifique que haya lotes disponibles para iniciar
+4. Contacte al administrador si el problema persiste
+
+#### 8.2.2 La Producción No Se Actualiza
+
+**Síntomas:**
+- Los datos no se actualizan en tiempo real
+- Los contadores no cambian
+
+**Soluciones:**
+1. Verifique la conexión a internet o red local
+2. Refresque la página (F5)
+3. Verifique que el PLC esté conectado y enviando datos
+4. Contacte al técnico de sistemas si el problema persiste
+
+#### 8.2.3 Error de Model ID
+
+**Síntomas:**
+- Aparece un modal de error de Model ID
+- La producción se detiene
+
+**Soluciones:**
+1. Verifique la configuración del PLC
+2. Asegúrese de que el PLC esté enviando el Model ID correcto
+3. Consulte la tabla de referencia de Model IDs en el modal
+4. Contacte al técnico de PLC para corregir la configuración
+
+#### 8.2.4 Paro de Emergencia por Mantenimiento
+
+**Síntomas:**
+- Aparece un modal de paro de emergencia
+- La producción se detiene automáticamente
+
+**Acciones:**
+1. Complete las tareas de mantenimiento necesarias
+2. Verifique el estado del equipo
+3. Reinicie la producción manualmente cuando esté listo
+4. No intente forzar la producción durante el mantenimiento
+
+### 8.3 Problemas de Visualización
+
+#### 8.3.1 Las Imágenes No Se Muestran
+
+**Síntomas:**
+- Las imágenes de defectos no aparecen
+- Iconos de imagen rotos
+
+**Soluciones:**
+1. Verifique la conexión a internet o red local
+2. Refresque la página (F5)
+3. Verifique que el servidor de imágenes esté funcionando
+4. Contacte al administrador si el problema persiste
+
+#### 8.3.2 La Página Se Ve Desordenada
+
+**Síntomas:**
+- Elementos mal alineados
+- Colores incorrectos
+- Fuentes extrañas
+
+**Soluciones:**
+1. Refresque la página (F5)
+2. Limpie la caché del navegador (Ctrl+Shift+Delete)
+3. Actualice su navegador a la última versión
+4. Intente con otro navegador
+
+### 8.4 Problemas de Exportación
+
+#### 8.4.1 No Puedo Exportar Datos
+
+**Síntomas:**
+- El botón de exportar no funciona
+- No se descarga el archivo
+
+**Soluciones:**
+1. Verifique que tenga el permiso `history.lotes.exportar`
+2. Verifique que su navegador permita descargas
+3. Revise la carpeta de descargas
+4. Intente con otro navegador
+
+#### 8.4.2 El Archivo CSV Está Vacío
+
+**Síntomas:**
+- El archivo se descarga pero está vacío
+- Solo tiene encabezados
+
+**Soluciones:**
+1. Verifique que haya datos para exportar
+2. Ajuste los filtros en la página de historial
+3. Intente exportar un lote específico
+4. Contacte al administrador si el problema persiste
+
+### 8.5 Problemas de Permisos
+
+#### 8.5.1 No Veo Algunas Secciones
+
+**Síntomas:**
+- No aparecen opciones en el menú
+- No puedo acceder a ciertas páginas
+
+**Soluciones:**
+1. Esto es normal según sus permisos asignados
+2. Contacte al administrador si necesita acceso adicional
+3. Verifique sus roles asignados en la sección de usuarios
+
+#### 8.5.2 No Puedo Realizar Acciones
+
+**Síntomas:**
+- Los botones de crear/editar/eliminar no aparecen
+- Mensaje de "Sin permisos"
+
+**Soluciones:**
+1. Verifique que tenga los permisos necesarios
+2. Contacte al administrador para solicitar permisos adicionales
+3. Verifique sus roles asignados
+
+### 8.6 Contacto de Soporte
+
+Si después de intentar estas soluciones el problema persiste, contacte al administrador del sistema o al equipo de soporte técnico proporcionando:
+- Descripción detallada del problema
+- Pasos para reproducir el problema
+- Capturas de pantalla si es posible
+- Mensajes de error específicos
+
+---
+
+## 9. Glosario de Términos
+
+### 9.1 Términos Generales
+
+**Dashboard**
+- Panel principal del sistema que muestra estadísticas y acceso rápido a las funcionalidades.
+
+**Lote**
+- Un conjunto de piezas que se producen juntas con un objetivo específico. Cada lote tiene un nombre único, una receta asociada y un objetivo de piezas OK.
+
+**Receta**
+- Configuración de un modelo de cable que incluye especificaciones técnicas como número de conductores, terminales, PPN, etc. Cada receta tiene un Model ID único (1-7) que se comunica al PLC.
+
+**PPN (Part Number)**
+- Número de parte único que identifica una receta específica. Ejemplo: "1020746", "698330001".
+
+**Model ID**
+- Identificador numérico (1-7) que se envía al PLC para identificar qué modelo de cable se está produciendo. Cada receta tiene un Model ID único.
+
+**Pieza**
+- Una unidad individual de cable procesada. Cada pieza puede ser OK (aprobada) o NOK (rechazada).
+
+**PLC (Programmable Logic Controller)**
+- Controlador lógico programable que controla la línea de producción y envía datos al sistema.
+
+### 9.2 Estados y Resultados
+
+**OK (Aprobado)**
+- Pieza que pasó todas las pruebas de calidad.
+
+**NOK (No Aprobado / Rechazado)**
+- Pieza que falló alguna prueba de calidad.
+
+**Estado del Lote:**
+- **OPEN**: Lote abierto y en producción o listo para iniciar
+- **CLOSED**: Lote cerrado y completado
+- **PAUSED**: Lote pausado temporalmente
+
+**Estado de la Línea:**
+- **Activo**: La línea está en producción
+- **Pausado**: La producción está pausada
+- **Detenido**: La producción está detenida
+- **Mantenimiento**: La línea está en modo mantenimiento
+
+### 9.3 Códigos de Falla
+
+Los códigos de falla son números que identifican el tipo de defecto detectado:
+
+- **0**: Sin falla (pieza OK)
+- **1-255**: Códigos específicos de falla según la configuración del PLC
+
+Cada código de falla puede tener una descripción asociada en el sistema.
+
+### 9.4 Permisos y Roles
+
+**Rol**
+- Conjunto de permisos que se asignan a un usuario. Los roles determinan qué acciones puede realizar un usuario en el sistema.
+
+**Permiso**
+- Autorización específica para realizar una acción en el sistema. Los permisos están organizados por categorías (production, history, management).
+
+**Ejemplos de Permisos:**
+- `production.ver`: Ver la página de producción
+- `production.control.start`: Iniciar producción
+- `history.lotes.exportar`: Exportar datos a CSV
+- `management.recetas.crear`: Crear nuevas recetas
+
+### 9.5 Métricas
+
+**Tasa de Producción**
+- Número de piezas procesadas por minuto.
+
+**Eficiencia**
+- Porcentaje que indica qué tan eficientemente está funcionando la línea de producción.
+
+**Precisión**
+- Porcentaje de piezas OK vs el total de piezas procesadas. Se calcula como: (Piezas OK / Total de Piezas) × 100.
+
+---
+
+## 10. Preguntas Frecuentes (FAQ)
+
+### 10.1 ¿Cómo cambio mi contraseña?
+
+Actualmente, la funcionalidad de cambio de contraseña debe ser realizada por un administrador. Contacte al administrador del sistema para solicitar un cambio de contraseña.
+
+### 10.2 ¿Puedo tener múltiples lotes activos al mismo tiempo?
+
+No, solo puede haber un lote activo a la vez. Debe detener o cerrar el lote actual antes de iniciar uno nuevo.
+
+### 10.3 ¿Qué pasa si cierro accidentalmente un lote?
+
+Un lote cerrado no puede reabrirse. Asegúrese de que la producción esté completa antes de cerrar un lote. Si necesita continuar la producción, cree un nuevo lote.
+
+### 10.4 ¿Los datos se guardan automáticamente?
+
+Sí, todos los datos de producción se guardan automáticamente en tiempo real. No es necesario guardar manualmente.
+
+### 10.5 ¿Puedo exportar datos de un rango de fechas específico?
+
+Actualmente, la exportación incluye todos los lotes filtrados. Use los filtros de búsqueda y estado para limitar los lotes que desea exportar.
+
+### 10.6 ¿Qué navegadores son compatibles?
+
+El sistema funciona mejor con navegadores modernos:
+- Google Chrome (recomendado)
+- Mozilla Firefox
+- Microsoft Edge
+- Safari (Mac)
+
+### 10.7 ¿Necesito conexión a internet?
+
+El sistema puede funcionar en una red local sin necesidad de internet, siempre que el servidor esté accesible en la red.
+
+### 10.8 ¿Cómo sé qué permisos tengo?
+
+Sus permisos están determinados por los roles asignados a su usuario. Contacte al administrador para conocer sus permisos específicos o para solicitar permisos adicionales.
+
+### 10.9 ¿Qué debo hacer si veo un error de Model ID?
+
+1. No intente continuar la producción
+2. Verifique la configuración del PLC
+3. Consulte la tabla de referencia de Model IDs en el modal de error
+4. Contacte al técnico de PLC para corregir la configuración
+5. Una vez corregido, reinicie la producción
+
+### 10.10 ¿Las imágenes de defectos se guardan permanentemente?
+
+Sí, todas las imágenes de piezas defectuosas se guardan permanentemente y están asociadas al lote y pieza correspondiente. Pueden consultarse en el historial.
+
+---
+
+## 11. Apéndices
+
+### 11.1 Referencia Rápida de Model IDs
+
+| Model ID | PPN Ejemplo | Conductores | Descripción |
+|----------|-------------|-------------|-------------|
+| 1 | 1020746 | 2 | Cable estándar 2 conductores |
+| 2 | 1020746-02 | 2 | Variante 02 |
+| 3 | 1020746-03 | 2 | Variante 03 |
+| 4 | 1020746-04 | 2 | Variante 04 |
+| 5 | 1020746-05 | 2 | Variante 05 |
+| 6 | 1020746-06 | 2 | Variante 06 |
+| 7 | 698330001 | 4 | Cable 4 conductores |
+
+**Nota:** Los PPNs reales pueden variar según su configuración. Consulte la sección de Recetas para ver los Model IDs configurados en su sistema.
+
+### 11.2 Atajos de Teclado
+
+- **F5**: Refrescar la página
+- **Ctrl + F**: Buscar en la página actual
+- **Esc**: Cerrar modales
+- **Enter**: Confirmar acciones en formularios
+
+### 11.3 Formatos de Fecha y Hora
+
+El sistema muestra fechas y horas en el siguiente formato:
+- **Fecha**: DD/MM/YYYY (Día/Mes/Año)
+- **Hora**: HH:MM (Hora:Minuto en formato 24 horas)
+- **Ejemplo**: 15/12/2024 14:30
+
+### 11.4 Límites del Sistema
+
+- **Model IDs**: Máximo 7 (1-7)
+- **Caracteres en nombre de lote**: Sin límite específico, pero se recomienda mantener nombres cortos y descriptivos
+- **Piezas por lote**: Sin límite técnico
+- **Usuarios**: Sin límite técnico
+- **Roles**: Sin límite técnico
+
+---
+
+## 12. Conclusión
+
+Este manual cubre todas las funcionalidades principales del Sistema de Control de Calidad Industrial. Si tiene preguntas adicionales o necesita asistencia, no dude en contactar al administrador del sistema o al equipo de soporte técnico.
+
+**¡Gracias por usar el sistema!**
+
+---
+
+**Versión del Manual:** 1.0  
+**Fecha de Actualización:** Diciembre 2024  
+**Sistema:** Control de Calidad Industrial - Amphenol
+
