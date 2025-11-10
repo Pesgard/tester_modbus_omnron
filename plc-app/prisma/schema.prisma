@@ -1,0 +1,181 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// -------------------------
+/// AUTENTICACIÓN (Lucia)
+/// -------------------------
+
+model User {
+  id            String   @id @default(uuid())
+  username      String   @unique
+  hash_password String
+  active        Boolean  @default(true)
+  created_at    DateTime @default(now())
+
+  // Relaciones
+  sessions         Session[]
+  roles            UserRole[]
+  historial        Historial[]
+  lotes            Lote[]      @relation("LotesCreados")
+  piezasProcesadas Pieza[]     @relation("PiezasProcesadas")
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+}
+
+/// -------------------------
+/// AUTORIZACIÓN
+/// -------------------------
+
+model Role {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  description String?
+
+  users       UserRole[]
+  permisosRol PermisoRol[]
+}
+
+model Permiso {
+  id          String  @id @default(uuid())
+  key         String  @unique
+  description String?
+
+  permisosRol PermisoRol[]
+}
+
+model PermisoRol {
+  id        String @id @default(uuid())
+  roleId    String
+  permisoId String
+
+  role    Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permiso Permiso @relation(fields: [permisoId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permisoId], name: "roleId_permisoId")
+}
+
+/// Relación muchos a muchos entre Users y Roles
+model UserRole {
+  id     String @id @default(uuid())
+  userId String
+  roleId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId], name: "userId_roleId")
+}
+
+/// -------------------------
+/// MODELOS DE PRODUCCIÓN
+/// -------------------------
+model Receta {
+  id                   String   @id @default(uuid())
+  model_id             Int      @unique // ID del modelo para el PLC (1-7)
+  ppn                  String   @unique // Part Number
+  cable_np             String // Cable Number
+  quantity             Float // En pies
+  u_of_m               String // Unidad de medida (FT)
+  item_description     String
+  cantidad_conductores Int
+  l1_terminal          String?
+  l2_terminal          String?
+  l3_terminal          String?
+  l4_terminal          String?
+  l5_terminal          String?
+  activa               Boolean  @default(true)
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  // Relaciones
+  lotes Lote[]
+
+  @@map("Receta")
+}
+
+model Lote {
+  id            String     @id @default(uuid())
+  name          String     @unique
+  receta_id     String // 🆕 Relación con receta
+  max_piezas_ok Int
+  piezas_ok     Int        @default(0)
+  piezas_fallas Int        @default(0)
+  estado        EstadoLote @default(OPEN)
+  started_at    DateTime   @default(now())
+  closed_at     DateTime?
+  created_by    String
+
+  // Relaciones
+  receta    Receta      @relation(fields: [receta_id], references: [id])
+  creator   User        @relation("LotesCreados", fields: [created_by], references: [id])
+  piezas    Pieza[]
+  imagenes  Imagen[]
+  historial Historial[]
+
+  @@map("Lote")
+}
+
+model Pieza {
+  id             String    @id @default(uuid())
+  lote_id        String
+  resultado_bits Json
+  ok             Boolean
+  indice         Int
+  imagen_path    String
+  processed_at   DateTime?
+  processed_by   String?
+
+  lote       Lote        @relation(fields: [lote_id], references: [id], onDelete: Cascade)
+  procesador User?       @relation("PiezasProcesadas", fields: [processed_by], references: [id])
+  imagenes   Imagen[]
+  historial  Historial[]
+}
+
+model Imagen {
+  id             String   @id @default(uuid())
+  lote_id        String
+  pieza_id       String?
+  path           String
+  tipo_falla     String
+  metadata       Json?
+  thumbnail_path String   @default("")
+  uploaded_at    DateTime @default(now())
+
+  lote  Lote   @relation(fields: [lote_id], references: [id], onDelete: Cascade)
+  pieza Pieza? @relation(fields: [pieza_id], references: [id], onDelete: SetNull)
+}
+
+model Historial {
+  id         String   @id @default(uuid())
+  lote_id    String
+  pieza_id   String?
+  user_id    String
+  action_key String
+  meta       Json
+  created_at DateTime @default(now())
+
+  lote  Lote   @relation(fields: [lote_id], references: [id], onDelete: Cascade)
+  pieza Pieza? @relation(fields: [pieza_id], references: [id], onDelete: SetNull)
+  user  User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+/// -------------------------
+/// ENUMS
+/// -------------------------
+
+enum EstadoLote {
+  OPEN
+  CLOSED
+  PAUSED
+}

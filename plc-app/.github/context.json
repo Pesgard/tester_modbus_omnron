@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "files": [
+    ".github/project.md",
+    {
+      "url": "https://www.skeleton.dev/llms-svelte.txt",
+      "purpose": "reference"
+    }
+  ],
+  "context": {
+    "priority": [
+      ".github/copilot-instructions.md",
+      "https://www.skeleton.dev/llms-svelte.txt"
+    ],
+    "notes": "Usar .github/copilot-instructions.md como fuente principal para el stack, arquitectura, contratos API y WS, patrones de seguridad y autenticación con Lucia. Usar el contexto de Skeleton UI para guiar la implementación frontend SvelteKit con Skeleton UI."
+  }
+}

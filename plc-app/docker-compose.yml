@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:15
+    container_name: amphenol_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: production-system-amphenol
+    ports:
+      - "5433:5432"  # Changed host port to 5433
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:
