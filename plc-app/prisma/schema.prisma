@@ -156,6 +156,17 @@ model Imagen {
   pieza Pieza? @relation(fields: [pieza_id], references: [id], onDelete: SetNull)
 }
 
+model PendingImage {
+  id            String    @id @default(uuid())
+  timestamp     DateTime
+  filename      String
+  finalPath     String
+  size          Int
+  linked        Boolean   @default(false)
+  linkedPieceId String?
+  linkedAt      DateTime?
+}
+
 model Historial {
   id         String   @id @default(uuid())
   lote_id    String

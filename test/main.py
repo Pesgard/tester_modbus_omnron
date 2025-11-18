@@ -721,6 +721,9 @@ def test_sequences_menu(client):
     print(f"{Colors.CYAN}2.{Colors.ENDC} Test Mixto - OK + NOK (x20)")
     print(f"{Colors.CYAN}3.{Colors.ENDC} Test Fallas - Solo NOK con diferentes códigos")
     print(f"{Colors.CYAN}4.{Colors.ENDC} Test Completo - Flujo realista (x50)")
+    print(f"{Colors.CYAN}5.{Colors.ENDC} 📸 Test Nuevo Flujo - Imágenes primero, datos después 20s")
+    print(f"{Colors.CYAN}6.{Colors.ENDC} 🎯 Test Único - Evento personalizado con buffer de 20s")
+   
     print(f"{Colors.RED}0.{Colors.ENDC} Volver")
 
     choice = input(f"\n{Colors.BOLD}Selecciona secuencia: {Colors.ENDC}").strip()
@@ -735,6 +738,10 @@ def test_sequences_menu(client):
         run_test_failures(client)
     elif choice == '4':
         run_test_complete(client)
+    elif choice == '5':
+        run_test_buffer_flow(client)
+    elif choice == '6':
+        run_test_single_with_buffer(client)
     else:
         log_message("Opción inválida", Colors.RED)
 
@@ -851,6 +858,238 @@ def run_test_complete(client):
     print(f"  {Colors.RED}NOK: {nok_count} ({nok_count * 100 / 50:.1f}%){Colors.ENDC}")
 
     log_message("Test completado", Colors.GREEN)
+
+
+def run_test_buffer_flow(client):
+    """Test nuevo flujo con buffer - Imágenes primero (1-3), datos después de 20s"""
+    print_header()
+    print(f"{Colors.BOLD}📸 TEST FLUJO CON BUFFER TEMPORAL{Colors.ENDC}\n")
+    print(f"{Colors.YELLOW}Este test simula el nuevo flujo real del sistema:{Colors.ENDC}")
+    print(f"{Colors.YELLOW}1. Se envían de 1 a 3 imágenes (dependiendo de la falla){Colors.ENDC}")
+    print(f"{Colors.YELLOW}2. Las imágenes se almacenan en buffer temporal (60s){Colors.ENDC}")
+    print(f"{Colors.YELLOW}3. Después de ~20 segundos llegan los datos PLC{Colors.ENDC}")
+    print(f"{Colors.YELLOW}4. El sistema enlaza las imágenes con la pieza por timestamp{Colors.ENDC}\n")
+    
+    test_cases = [
+        # (failureCode, description, num_images)
+        (2, "NOK - Etiqueta incorrecta", 2),
+        (1, "NOK - Test Hipot", 3),
+        (4, "NOK - Terminal incorrecta", 1),
+        (2, "NOK - Etiqueta incorrecta", 3),
+        (99, "NOK - Falla desconocida", 2),
+    ]
+    
+    print(f"{Colors.CYAN}Se ejecutarán {len(test_cases)} casos de prueba{Colors.ENDC}")
+    confirm = input(f"{Colors.BOLD}¿Continuar? (s/n): {Colors.ENDC}").strip().lower()
+    
+    if confirm != 's':
+        log_message("Test cancelado", Colors.YELLOW)
+        pause()
+        return
+    
+    print(f"\n{Colors.GREEN}{'═' * 64}{Colors.ENDC}")
+    print(f"{Colors.BOLD}🚀 EJECUTANDO TEST CON BUFFER{Colors.ENDC}")
+    print(f"{Colors.GREEN}{'═' * 64}{Colors.ENDC}\n")
+    
+    for idx, (failure_code, desc, num_images) in enumerate(test_cases, 1):
+        print(f"{Colors.CYAN}{'─' * 64}{Colors.ENDC}")
+        print(f"{Colors.BOLD}Test Case #{idx}/{len(test_cases)}{Colors.ENDC}")
+        print(f"{Colors.YELLOW}Descripción: {desc}{Colors.ENDC}")
+        print(f"{Colors.YELLOW}Imágenes a enviar: {num_images}{Colors.ENDC}\n")
+        
+        # PASO 1: Enviar imágenes (1-3)
+        print(f"{Colors.GREEN}📸 PASO 1: Enviando {num_images} imagen(es)...{Colors.ENDC}")
+        
+        image_timestamps = []
+        for i in range(num_images):
+            success, msg = client.generate_and_send_image(failure_code, delay=0)
+            
+            if success:
+                # Extraer timestamp del mensaje
+                import re
+                match = re.search(r'_(\d+)\.jpg', msg)
+                if match:
+                    image_timestamps.append(match.group(1))
+                
+                print(f"  {Colors.GREEN}✓ Imagen {i+1}/{num_images}: {msg}{Colors.ENDC}")
+            else:
+                print(f"  {Colors.RED}✗ Error en imagen {i+1}: {msg}{Colors.ENDC}")
+            
+            # Pequeño delay entre imágenes (simulación realista)
+            if i < num_images - 1:
+                time.sleep(0.5)
+        
+        # PASO 2: Esperar 20 segundos (simulando el proceso del PLC)
+        print(f"\n{Colors.YELLOW}⏳ PASO 2: Simulando proceso del PLC...{Colors.ENDC}")
+        print(f"{Colors.YELLOW}   Esperando 20 segundos antes de enviar datos PLC...{Colors.ENDC}")
+        
+        # Countdown de 20 segundos
+        for remaining in range(20, 0, -5):
+            print(f"{Colors.CYAN}   ⏱️  {remaining} segundos restantes...{Colors.ENDC}")
+            time.sleep(5)
+        
+        # PASO 3: Enviar datos PLC
+        print(f"\n{Colors.GREEN}📡 PASO 3: Enviando datos PLC...{Colors.ENDC}")
+        packet = [0, 1, failure_code, 1, 1, 0, 1, 0]  # NOK con failure code
+        success_data, msg_data = client.send_packet(packet)
+        
+        if success_data:
+            print(f"  {Colors.GREEN}✓ {msg_data}{Colors.ENDC}")
+        else:
+            print(f"  {Colors.RED}✗ {msg_data}{Colors.ENDC}")
+        
+        # Resumen del caso
+        print(f"\n{Colors.BOLD}📊 Resumen del caso:{Colors.ENDC}")
+        print(f"  {Colors.GREEN}✅ Imágenes enviadas: {num_images}{Colors.ENDC}")
+        print(f"  {Colors.GREEN}✅ Datos PLC enviados: {success_data}{Colors.ENDC}")
+        print(f"  {Colors.CYAN}💡 El servidor debe enlazar las {num_images} imágenes con la pieza{Colors.ENDC}")
+        print(f"  {Colors.CYAN}💡 Las imágenes se buscan por proximidad temporal (±60s){Colors.ENDC}")
+        
+        # Pausa entre casos
+        if idx < len(test_cases):
+            print(f"\n{Colors.YELLOW}Esperando 3 segundos antes del siguiente caso...{Colors.ENDC}\n")
+            time.sleep(3)
+    
+    print(f"\n{Colors.BOLD}{'═' * 64}{Colors.ENDC}")
+    print(f"{Colors.BOLD}✅ TEST COMPLETADO{Colors.ENDC}")
+    print(f"{Colors.BOLD}{'═' * 64}{Colors.ENDC}")
+    print(f"\n{Colors.CYAN}💡 Verifica en el servidor:{Colors.ENDC}")
+    print(f"{Colors.CYAN}   • Buffer temporal tiene las imágenes correctas{Colors.ENDC}")
+    print(f"{Colors.CYAN}   • Las piezas se enlazaron con sus imágenes{Colors.ENDC}")
+    print(f"{Colors.CYAN}   • Los registros en tabla Imagen están creados{Colors.ENDC}")
+    print(f"{Colors.CYAN}   • Las rutas están en pieza.imagen_path (separadas por coma){Colors.ENDC}")
+    
+    log_message("Test completado", Colors.GREEN)
+    pause()
+
+
+def run_test_single_with_buffer(client):
+    """Test único personalizado con buffer de 20s"""
+    print_header()
+    print(f"{Colors.BOLD}🎯 TEST ÚNICO CON BUFFER DE 20 SEGUNDOS{Colors.ENDC}\n")
+    print(f"{Colors.YELLOW}Este test permite configurar un evento completo personalizado:{Colors.ENDC}")
+    print(f"{Colors.YELLOW}• Envía de 1 a 3 imágenes según tu elección{Colors.ENDC}")
+    print(f"{Colors.YELLOW}• Espera 20 segundos (simulando proceso PLC){Colors.ENDC}")
+    print(f"{Colors.YELLOW}• Envía los datos PLC para enlazar las imágenes{Colors.ENDC}\n")
+    
+    # Configuración
+    print(f"{Colors.CYAN}{'─' * 64}{Colors.ENDC}")
+    print(f"{Colors.BOLD}CONFIGURACIÓN DEL EVENTO{Colors.ENDC}\n")
+    
+    try:
+        # Número de imágenes
+        num_images = int(input(f"{Colors.BOLD}Número de imágenes (1-3): {Colors.ENDC}").strip())
+        if num_images < 1 or num_images > 3:
+            log_message("Debe ser entre 1 y 3 imágenes", Colors.RED)
+            pause()
+            return
+        
+        # Failure Code
+        print(f"\n{Colors.CYAN}Códigos de falla disponibles:{Colors.ENDC}")
+        print(f"  1. Test hipot (rojo)")
+        print(f"  2. Etiqueta incorrecta (naranja)")
+        print(f"  3. Modelo incorrecto (magenta)")
+        print(f"  4. Terminal incorrecta (amarillo)")
+        print(f"  99. Falla desconocida (púrpura)")
+        
+        failure_code = int(input(f"\n{Colors.BOLD}Código de falla (1-4, 99): {Colors.ENDC}").strip())
+        if failure_code not in [1, 2, 3, 4, 99]:
+            log_message("Código de falla inválido", Colors.RED)
+            pause()
+            return
+        
+        # Model ID
+        model_id = int(input(f"{Colors.BOLD}Model ID (1-9): {Colors.ENDC}").strip())
+        if model_id < 1 or model_id > 9:
+            log_message("Model ID debe estar entre 1 y 9", Colors.RED)
+            pause()
+            return
+        
+        # Camera Status
+        camera_status = int(input(f"{Colors.BOLD}Camera Status (0=OK, 1=Falla): {Colors.ENDC}").strip())
+        
+        # Electrical Status
+        electrical_status = int(input(f"{Colors.BOLD}Electrical Status (0=OK, 1=Falla): {Colors.ENDC}").strip())
+        
+    except ValueError:
+        log_message("Error: Valores inválidos ingresados", Colors.RED)
+        pause()
+        return
+    
+    # Resumen
+    print(f"\n{Colors.CYAN}{'─' * 64}{Colors.ENDC}")
+    print(f"{Colors.BOLD}RESUMEN DEL EVENTO{Colors.ENDC}\n")
+    print(f"{Colors.YELLOW}Imágenes a enviar:{Colors.ENDC} {num_images}")
+    print(f"{Colors.YELLOW}Failure Code:{Colors.ENDC} {failure_code} ({FAILURE_CODES.get(failure_code, 'Código personalizado')})")
+    print(f"{Colors.YELLOW}Model ID:{Colors.ENDC} {model_id}")
+    print(f"{Colors.YELLOW}Camera Status:{Colors.ENDC} {'OK' if camera_status == 0 else 'Falla'}")
+    print(f"{Colors.YELLOW}Electrical Status:{Colors.ENDC} {'OK' if electrical_status == 0 else 'Falla'}")
+    print(f"{Colors.YELLOW}Delay antes de datos:{Colors.ENDC} 20 segundos")
+    
+    # Construir paquete
+    packet = [0, 1, failure_code, model_id, camera_status, electrical_status, 1, 0]
+    print(f"\n{Colors.CYAN}Paquete PLC:{Colors.ENDC} {packet}")
+    
+    # Confirmar
+    print(f"\n{Colors.YELLOW}{'─' * 64}{Colors.ENDC}")
+    confirm = input(f"{Colors.BOLD}¿Confirmar envío? (s/n): {Colors.ENDC}").strip().lower()
+    
+    if confirm != 's':
+        log_message("Envío cancelado", Colors.YELLOW)
+        pause()
+        return
+    
+    # Ejecutar
+    print(f"\n{Colors.GREEN}{'═' * 64}{Colors.ENDC}")
+    print(f"{Colors.BOLD}🚀 EJECUTANDO TEST{Colors.ENDC}")
+    print(f"{Colors.GREEN}{'═' * 64}{Colors.ENDC}\n")
+    
+    # PASO 1: Enviar imágenes
+    print(f"{Colors.GREEN}📸 PASO 1/3: Enviando {num_images} imagen(es)...{Colors.ENDC}\n")
+    
+    images_sent = 0
+    for i in range(num_images):
+        success, msg = client.generate_and_send_image(failure_code, delay=0)
+        
+        if success:
+            images_sent += 1
+            print(f"  {Colors.GREEN}✓ Imagen {i+1}/{num_images}: {msg}{Colors.ENDC}")
+        else:
+            print(f"  {Colors.RED}✗ Error en imagen {i+1}: {msg}{Colors.ENDC}")
+        
+        if i < num_images - 1:
+            time.sleep(0.5)
+    
+    # PASO 2: Esperar 20 segundos
+    print(f"\n{Colors.YELLOW}⏳ PASO 2/3: Simulando proceso del PLC (20 segundos)...{Colors.ENDC}\n")
+    
+    for remaining in range(20, 0, -5):
+        print(f"  {Colors.CYAN}⏱️  {remaining} segundos restantes...{Colors.ENDC}")
+        time.sleep(5)
+    
+    # PASO 3: Enviar datos
+    print(f"\n{Colors.GREEN}📡 PASO 3/3: Enviando datos PLC...{Colors.ENDC}\n")
+    success_data, msg_data = client.send_packet(packet)
+    
+    if success_data:
+        print(f"  {Colors.GREEN}✓ {msg_data}{Colors.ENDC}")
+    else:
+        print(f"  {Colors.RED}✗ {msg_data}{Colors.ENDC}")
+    
+    # Resumen final
+    print(f"\n{Colors.BOLD}{'═' * 64}{Colors.ENDC}")
+    print(f"{Colors.BOLD}📊 RESUMEN DEL TEST{Colors.ENDC}")
+    print(f"{Colors.BOLD}{'═' * 64}{Colors.ENDC}")
+    print(f"{Colors.GREEN}✅ Imágenes enviadas: {images_sent}/{num_images}{Colors.ENDC}")
+    print(f"{Colors.GREEN}✅ Datos enviados: {success_data}{Colors.ENDC}")
+    print(f"\n{Colors.CYAN}💡 Verifica en el servidor:{Colors.ENDC}")
+    print(f"{Colors.CYAN}   • Las {images_sent} imágenes se enlazaron con la pieza{Colors.ENDC}")
+    print(f"{Colors.CYAN}   • Registros creados en tabla Imagen{Colors.ENDC}")
+    print(f"{Colors.CYAN}   • Rutas guardadas en pieza.imagen_path{Colors.ENDC}")
+    print(f"{Colors.CYAN}   • Buffer limpiado correctamente{Colors.ENDC}")
+    
+    log_message("Test completado", Colors.GREEN)
+    pause()
 
 
 # ========================================

@@ -16,19 +16,30 @@
 	let lineStatus = $state(data.lineStatus);
 	let recentPieces = $state(data.recentPieces);
 	let availableLotes = $state(data.availableLotes);
+	recentPieces = recentPieces.map((pieza: any) => ({
+		...pieza,
+		images:
+			pieza.images ??
+			(pieza.imagen_path && pieza.imagen_path !== '' && pieza.imagen_path !== 'pending'
+				? [pieza.imagen_path]
+				: []),
+		awaitingImage: pieza.awaitingImage ?? false,
+		failureCode: pieza.failureCode ?? 0,
+		loteName: pieza.loteName ?? pieza?.lote?.name ?? lineStatus.lote?.name ?? ''
+	}));
 
 	// Error modal state
 	let errorModal = $state<{
 		show: boolean;
 		message: string;
-		imagePath: string | null;
+		imageList: string[];
 		failureCode: number;
 		piezaIndex: number;
 		loteName: string;
 	}>({
 		show: false,
 		message: '',
-		imagePath: null,
+		imageList: [],
 		failureCode: 0,
 		piezaIndex: 0,
 		loteName: ''
@@ -122,7 +133,7 @@
 	// WebSocket connection using $effect (Svelte 5)
 	$effect(() => {
 		console.log('🔌 [Production] Initializing WebSocket connection...');
-		
+
 		// Create WebSocket connection to port 4000 (WebSocket server)
 		const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 		const hostname = window.location.hostname;
@@ -146,7 +157,7 @@
 
 					case 'piece-created':
 						console.log('✅ [WS] Piece created:', message.payload);
-						
+
 						// Create piece object from payload
 						const newPiece = {
 							id: message.payload.piezaId,
@@ -154,18 +165,22 @@
 							indice: message.payload.index,
 							ok: message.payload.ok,
 							imagen_path: message.payload.hasImage ? 'pending' : '',
+							images: [],
+							awaitingImage: message.payload.hasImage,
+							failureCode: message.payload.failureCode ?? 0,
+							loteName: message.payload.loteName ?? '',
 							processed_at: new Date().toISOString(),
 							resultado_bits: message.payload.parsed?.rawData || [],
 							isNew: true
 						};
-						
+
 						// Add new piece to the top of the list
 						recentPieces = [newPiece, ...recentPieces.slice(0, 19)];
 						console.log('📝 [WS] Recent pieces updated, count:', recentPieces.length);
-						
+
 						// Remove isNew flag after animation (2 seconds)
 						setTimeout(() => {
-							const index = recentPieces.findIndex(p => p.id === newPiece.id);
+							const index = recentPieces.findIndex((p) => p.id === newPiece.id);
 							if (index !== -1) {
 								const updated = [...recentPieces];
 								updated[index] = { ...updated[index], isNew: false };
@@ -173,26 +188,41 @@
 								console.log('🎨 [WS] Removed isNew flag from piece', newPiece.id);
 							}
 						}, 2000);
-						
+
 						// Update line status counters in real-time
 						if (lineStatus.lote) {
 							const updatedLote = { ...lineStatus.lote };
-							
+
 							if (message.payload.ok) {
 								updatedLote.piezasOk += 1;
 							} else {
 								updatedLote.piezasFallas += 1;
 							}
-							
+
 							// Recalculate progress
 							const total = updatedLote.piezasOk + updatedLote.piezasFallas;
-							updatedLote.progress = updatedLote.maxPiezasOk > 0 
-								? (updatedLote.piezasOk / updatedLote.maxPiezasOk) * 100 
-								: 0;
-							
+							updatedLote.progress =
+								updatedLote.maxPiezasOk > 0
+									? (updatedLote.piezasOk / updatedLote.maxPiezasOk) * 100
+									: 0;
+
 							// Force reactive update by creating new object
 							lineStatus = { ...lineStatus, lote: updatedLote };
 							console.log('📊 [WS] Line status updated:', updatedLote);
+						}
+
+						if (!message.payload.ok && (message.payload.failureCode ?? 0) > 0) {
+							console.warn('⚠️ [WS] Pausing production due to detected failure');
+							stopProductionDueToError();
+
+							errorModal = {
+								show: true,
+								message: `Falla detectada en pieza #${message.payload.index}`,
+								imageList: [],
+								failureCode: message.payload.failureCode || 0,
+								piezaIndex: message.payload.index,
+								loteName: message.payload.loteName || ''
+							};
 						}
 						break;
 
@@ -200,44 +230,57 @@
 						console.log('📸 [WS] Awaiting image for piece:', message.payload.piezaIndex);
 						// Mark piece as waiting for image
 						const waitingIndex = recentPieces.findIndex(
-							p => p.indice === message.payload.piezaIndex && p.lote_id === message.payload.loteId
+							(p) => p.indice === message.payload.piezaIndex && p.lote_id === message.payload.loteId
 						);
 						if (waitingIndex !== -1) {
 							const updated = [...recentPieces];
-							updated[waitingIndex] = { ...updated[waitingIndex], imagen_path: 'pending' };
+							updated[waitingIndex] = {
+								...updated[waitingIndex],
+								imagen_path: 'pending',
+								awaitingImage: true
+							};
 							recentPieces = updated;
 						}
 						break;
 
-					case 'image-processed':
-						console.log('🖼️ [WS] Image processed:', message.payload);
-						
-						// Update the piece with the image path
-						const imageIndex = recentPieces.findIndex(
-							p => p.indice === message.payload.piezaIndex && p.lote_id === message.payload.loteId
+					case 'piece-images-linked': {
+						console.log('🖼️ [WS] Piece images linked:', message.payload);
+						const { piezaIndex, loteId, images } = message.payload;
+
+						console.log('🔍 [Debug] Checking modal:', {
+							modalOpen: errorModal.show,
+							modalPiezaIndex: errorModal.piezaIndex,
+							receivedPiezaIndex: piezaIndex,
+							imagesCount: images?.length || 0
+						});
+
+						const pieceIdx = recentPieces.findIndex(
+							(p) => p.indice === piezaIndex && p.lote_id === loteId
 						);
-						
-						if (imageIndex !== -1) {
-							const updated = [...recentPieces];
-							updated[imageIndex] = { ...updated[imageIndex], imagen_path: message.payload.imagePath };
-							recentPieces = updated;
-							console.log('✅ [WS] Updated piece with image path:', message.payload.imagePath);
+
+						if (pieceIdx !== -1) {
+							const updatedPieces = [...recentPieces];
+							const targetPiece = updatedPieces[pieceIdx];
+							updatedPieces[pieceIdx] = {
+								...targetPiece,
+								imagen_path: images?.[0] || targetPiece.imagen_path,
+								images: images || [],
+								awaitingImage: false
+							};
+							recentPieces = updatedPieces;
 						}
 
-						// 🛑 PAUSE PRODUCTION IMMEDIATELY to prevent cascading errors
-						console.warn('⚠️ [WS] Pausing production due to failure detection');
-						stopProductionDueToError();
+						// Actualizar el modal de error si está abierto y corresponde a esta pieza
+						if (errorModal.show && errorModal.piezaIndex === piezaIndex) {
+							console.log('✅ [Modal] Updating images in error modal:', images);
+							errorModal = {
+								...errorModal,
+								imageList: images || []
+							};
+						}
 
-						// Show error modal with the image
-						errorModal = {
-							show: true,
-							message: `Falla detectada en pieza #${message.payload.piezaIndex}`,
-							imagePath: message.payload.imagePath,
-							failureCode: message.payload.failureCode || 0,
-							piezaIndex: message.payload.piezaIndex,
-							loteName: message.payload.loteName || ''
-						};
 						break;
+					}
 
 					case 'lot-started':
 						console.log('🚀 [WS] Lot started:', message.payload);
@@ -267,10 +310,10 @@
 					case 'plc-error':
 						console.error('❌ [WS] PLC Error:', message.payload);
 						break;
-						
+
 					case 'emergency-stop':
 						console.log('🚨 [WS] Emergency stop:', message.payload);
-						
+
 						// Show emergency stop modal immediately
 						emergencyStopModal = {
 							show: true,
@@ -280,7 +323,7 @@
 							loteId: message.payload.loteId,
 							loteName: message.payload.loteName
 						};
-						
+
 						// Clear recent pieces and update status
 						recentPieces = [];
 						fetchLineStatus();
@@ -289,7 +332,7 @@
 
 					case 'model-mismatch':
 						console.error('🚨 [WS] Model ID mismatch:', message.payload);
-						
+
 						// Show model mismatch modal
 						modelMismatchModal = {
 							show: true,
@@ -427,7 +470,7 @@
 		errorModal = {
 			show: false,
 			message: '',
-			imagePath: null,
+			imageList: [],
 			failureCode: 0,
 			piezaIndex: 0,
 			loteName: ''
@@ -464,7 +507,7 @@
 	async function resumeProduction() {
 		// Close modal first
 		closeErrorModal();
-		
+
 		// Note: User must manually select and start a lot again from the UI
 		// This is intentional to ensure proper review before continuing
 		console.log('✅ [Modal] User acknowledged error. Production must be restarted manually.');
@@ -472,34 +515,70 @@
 
 	function getFailureTypeName(failureCode: number): string {
 		switch (failureCode) {
-			case 0: return 'Sin falla';
-			case 1: return 'Test hipot falla';
-			case 2: return 'Etiqueta incorrecta';
-			case 3: return 'Modelo incorrecto';
-			case 4: return 'Terminal incorrecta';
-			default: return 'Falla desconocida';
+			case 0:
+				return 'Sin falla';
+			case 1:
+				return 'Test hipot falla';
+			case 2:
+				return 'Etiqueta incorrecta';
+			case 3:
+				return 'Modelo incorrecto';
+			case 4:
+				return 'Terminal incorrecta';
+			default:
+				return 'Falla desconocida';
 		}
+	}
+
+	// Image carousel refs and functions
+	let carousel: HTMLDivElement | null = $state(null);
+	let btnLeft: HTMLButtonElement | null = $state(null);
+	let btnRight: HTMLButtonElement | null = $state(null);
+
+	function left() {
+		if (!carousel) return;
+		const x =
+			carousel.scrollLeft === 0
+				? carousel.clientWidth * carousel.childElementCount
+				: carousel.scrollLeft - carousel.clientWidth;
+		carousel.scroll(x, 0);
+	}
+
+	function right() {
+		if (!carousel) return;
+		const x =
+			carousel.scrollLeft === carousel.scrollWidth - carousel.clientWidth
+				? 0
+				: carousel.scrollLeft + carousel.clientWidth;
+		carousel.scroll(x, 0);
+	}
+
+	function goTo(index: number) {
+		if (carousel) carousel.scroll(carousel.clientWidth * index, 0);
 	}
 </script>
 
-<div class="production-page p-6 h-full overflow-auto">
+<div class="production-page h-full overflow-auto p-6">
 	<div class="mb-6">
 		<h1 class="text-3xl font-bold">Production Dashboard</h1>
-		<p class="text-surface-600-400 mt-1">Real-time monitoring and control</p>
+		<p class="mt-1 text-surface-600-400">Real-time monitoring and control</p>
 	</div>
 
 	<!-- Line Status Card -->
-	<div class="card variant-glass-surface p-6 mb-6">
-		<header class="flex items-center justify-between mb-4">
+	<div class="variant-glass-surface mb-6 card p-6">
+		<header class="mb-4 flex items-center justify-between">
 			<h2 class="h3">Line Status</h2>
 			<div class="flex items-center gap-2">
 				<div
-					class="w-3 h-3 rounded-full animate-pulse"
+					class="h-3 w-3 animate-pulse rounded-full"
 					class:bg-success-500={lineStatus.status === 'active'}
 					class:bg-surface-500={lineStatus.status === 'idle'}
 					class:bg-error-500={lineStatus.status === 'error'}
 				></div>
-				<span class="text-sm uppercase font-semibold" class:text-success-500={lineStatus.status === 'active'}>
+				<span
+					class="text-sm font-semibold uppercase"
+					class:text-success-500={lineStatus.status === 'active'}
+				>
 					{lineStatus.status}
 				</span>
 			</div>
@@ -514,22 +593,23 @@
 
 			{#if canControl && availableLotes.length > 0}
 				<div>
-					<h3 class="h4 mb-3">Available Lots</h3>
+					<h3 class="mb-3 h4">Available Lots</h3>
 					<div class="grid gap-3">
 						{#each availableLotes as lote}
 							<button
-								class="card variant-ghost-surface p-6 hover:variant-soft-primary text-left transition-all touch-manipulation min-h-[120px]"
+								class="variant-ghost-surface hover:variant-soft-primary min-h-[120px] touch-manipulation card p-6 text-left transition-all"
 								onclick={() => startProduction(lote.id)}
 							>
-								<div class="flex justify-between items-start mb-2">
-									<div class="font-bold text-xl flex items-center gap-2">
+								<div class="mb-2 flex items-start justify-between">
+									<div class="flex items-center gap-2 text-xl font-bold">
 										<IconPlay size={20} />
 										{lote.name}
 									</div>
-									<span class="badge variant-soft-success text-sm px-3 py-1">OPEN</span>
+									<span class="variant-soft-success badge px-3 py-1 text-sm">OPEN</span>
 								</div>
-								<div class="text-sm text-surface-600-400 mb-2">
-									<span class="font-mono">{lote.receta?.ppn || 'N/A'}</span> - {lote.receta?.item_description || 'N/A'}
+								<div class="mb-2 text-sm text-surface-600-400">
+									<span class="font-mono">{lote.receta?.ppn || 'N/A'}</span> - {lote.receta
+										?.item_description || 'N/A'}
 								</div>
 								<div class="flex gap-4 text-sm">
 									<div>
@@ -538,9 +618,9 @@
 									</div>
 									<div>
 										<span class="text-surface-600-400">Progress:</span>
-										<span class="text-success-500 font-semibold">{lote.piezas_ok}</span>
+										<span class="font-semibold text-success-500">{lote.piezas_ok}</span>
 										<span class="text-surface-600-400">/</span>
-										<span class="text-error-500 font-semibold">{lote.piezas_fallas}</span>
+										<span class="font-semibold text-error-500">{lote.piezas_fallas}</span>
 									</div>
 								</div>
 							</button>
@@ -550,7 +630,9 @@
 			{:else if !canControl}
 				<p class="text-surface-600-400">You don't have permission to start production.</p>
 			{:else}
-				<p class="text-surface-600-400">No open lots available. Create a lot in Management first.</p>
+				<p class="text-surface-600-400">
+					No open lots available. Create a lot in Management first.
+				</p>
 			{/if}
 		{:else if lineStatus.status === 'active' && lineStatus.lote}
 			<aside class="alert variant-filled-success mb-4">
@@ -560,7 +642,7 @@
 			</aside>
 
 			<!-- Recipe Info -->
-			<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+			<div class="mb-4 grid grid-cols-2 gap-4 md:grid-cols-4">
 				<div class="space-y-1">
 					<div class="text-sm text-surface-600-400">PPN</div>
 					<div class="font-mono font-bold">{lineStatus.lote.receta.ppn}</div>
@@ -569,7 +651,7 @@
 					<div class="text-sm text-surface-600-400">Conductors</div>
 					<div class="font-semibold">{lineStatus.lote.receta.cantidad_conductores}</div>
 				</div>
-				<div class="space-y-1 col-span-2">
+				<div class="col-span-2 space-y-1">
 					<div class="text-sm text-surface-600-400">Description</div>
 					<div class="text-sm">{lineStatus.lote.receta.item_description}</div>
 				</div>
@@ -577,11 +659,11 @@
 
 			<!-- Progress Bar -->
 			<div class="mb-4">
-				<div class="flex justify-between items-center mb-2">
+				<div class="mb-2 flex items-center justify-between">
 					<span class="text-sm text-surface-600-400">Progress</span>
 					<span class="font-bold">{lineStatus.lote.progress.toFixed(1)}%</span>
 				</div>
-				<div class="progress-bar h-3 bg-surface-200-800 rounded-full overflow-hidden">
+				<div class="progress-bar h-3 overflow-hidden rounded-full bg-surface-200-800">
 					<div
 						class="progress-fill h-full bg-gradient-to-r from-primary-500 to-success-500 transition-all duration-500"
 						style="width: {lineStatus.lote.progress}%"
@@ -590,8 +672,8 @@
 			</div>
 
 			{#if canControl}
-				<button 
-					class="btn variant-filled-error text-lg px-6 py-4 min-h-[60px] touch-manipulation" 
+				<button
+					class="variant-filled-error btn min-h-[60px] touch-manipulation px-6 py-4 text-lg"
 					onclick={openStopProductionModal}
 				>
 					<IconSquare size={24} />
@@ -603,21 +685,21 @@
 
 	<!-- Metrics -->
 	{#if canViewMetrics && lineStatus.status === 'active'}
-		<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-			<div class="card variant-filled-success/10 p-4">
-				<div class="text-sm text-surface-600-400 mb-1">OK Pieces</div>
+		<div class="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+			<div class="variant-filled-success/10 card p-4">
+				<div class="mb-1 text-sm text-surface-600-400">OK Pieces</div>
 				<div class="text-3xl font-bold text-success-500">{metrics.ok}</div>
 			</div>
-			<div class="card variant-filled-error/10 p-4">
-				<div class="text-sm text-surface-600-400 mb-1">NOK Pieces</div>
+			<div class="variant-filled-error/10 card p-4">
+				<div class="mb-1 text-sm text-surface-600-400">NOK Pieces</div>
 				<div class="text-3xl font-bold text-error-500">{metrics.nok}</div>
 			</div>
-			<div class="card variant-glass-surface p-4">
-				<div class="text-sm text-surface-600-400 mb-1">Efficiency</div>
+			<div class="variant-glass-surface card p-4">
+				<div class="mb-1 text-sm text-surface-600-400">Efficiency</div>
 				<div class="text-3xl font-bold">{metrics.efficiency.toFixed(1)}%</div>
 			</div>
-			<div class="card variant-glass-surface p-4">
-				<div class="text-sm text-surface-600-400 mb-1">Accuracy</div>
+			<div class="variant-glass-surface card p-4">
+				<div class="mb-1 text-sm text-surface-600-400">Accuracy</div>
 				<div class="text-3xl font-bold">{metrics.accuracy.toFixed(1)}%</div>
 			</div>
 		</div>
@@ -625,12 +707,12 @@
 
 	<!-- Real-time PLC Data -->
 	{#if plcData}
-		<div class="card variant-glass-surface p-6 mb-6">
-			<h2 class="h3 mb-4">Real-time PLC Data</h2>
-			<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+		<div class="variant-glass-surface mb-6 card p-6">
+			<h2 class="mb-4 h3">Real-time PLC Data</h2>
+			<div class="grid grid-cols-2 gap-4 md:grid-cols-4">
 				<div class="space-y-1">
 					<div class="text-sm text-surface-600-400">Line Status</div>
-					<div class="badge variant-soft">{plcData.lineStatus}</div>
+					<div class="variant-soft badge">{plcData.lineStatus}</div>
 				</div>
 				<div class="space-y-1">
 					<div class="text-sm text-surface-600-400">Piece Status</div>
@@ -656,14 +738,15 @@
 
 	<!-- Recent Pieces -->
 	{#if lineStatus.status === 'active' && recentPieces.length > 0}
-		<div class="card variant-glass-surface p-6">
-			<h2 class="h3 mb-4">Recent Pieces</h2>
+		<div class="variant-glass-surface card p-6">
+			<h2 class="mb-4 h3">Recent Pieces</h2>
 			<div class="table-container">
-				<table class="table table-hover">
+				<table class="table-hover table">
 					<thead>
 						<tr>
 							<th>Index</th>
 							<th>Status</th>
+							<th>Imágenes</th>
 							<th>Processed At</th>
 							<th>Raw Data</th>
 						</tr>
@@ -681,9 +764,22 @@
 										{pieza.ok ? '✓ OK' : '✗ NOK'}
 									</span>
 									{#if pieza.imagen_path === 'pending'}
-										<span class="badge variant-soft-warning ml-2">📸 Awaiting image</span>
+										<span class="variant-soft-warning ml-2 badge">📸 Awaiting image</span>
 									{:else if pieza.imagen_path && pieza.imagen_path !== ''}
-										<span class="badge variant-soft-success ml-2">🖼️ Image saved</span>
+										<span class="variant-soft-success ml-2 badge">🖼️ Image saved</span>
+									{/if}
+								</td>
+								<td>
+									{#if pieza.awaitingImage}
+										<span class="text-sm text-surface-500">—</span>
+									{:else if pieza.images && pieza.images.length > 0}
+										<span class="variant-soft-success badge">
+											{pieza.images.length === 1 ? '1 imagen' : `${pieza.images.length} imágenes`}
+										</span>
+									{:else if pieza.imagen_path && pieza.imagen_path !== ''}
+										<span class="variant-soft-success badge">1 imagen</span>
+									{:else}
+										<span class="text-sm text-surface-500">—</span>
 									{/if}
 								</td>
 								<td class="text-sm">{new Date(pieza.processed_at).toLocaleString()}</td>
@@ -697,30 +793,33 @@
 	{/if}
 </div>
 
-<!-- Error Modal -->
+<!-- Modal de Error con Carrusel (Reemplazar el modal existente) -->
+
 {#if errorModal.show}
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div 
+	<div
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
 		onclick={closeErrorModal}
 	>
-		<div 
-			class="card variant-filled-error w-full max-w-2xl max-h-[90vh] overflow-auto m-4 p-0"
+		<div
+			class="variant-filled-error m-4 max-h-[90vh] w-full max-w-2xl overflow-auto card p-0"
 			onclick={(e) => e.stopPropagation()}
 		>
 			<!-- Modal Header -->
-			<header class="card-header bg-error-500 text-white p-6">
+			<header class="card-header bg-error-500 p-6 text-white">
 				<div class="flex items-center justify-between">
 					<div class="flex items-center gap-4">
 						<IconAlertTriangle size={48} class="animate-pulse" />
 						<div>
 							<h3 class="text-2xl font-bold">Falla en Producción</h3>
-							<p class="text-base opacity-90 mt-1">Lote: {errorModal.loteName} - Pieza #{errorModal.piezaIndex}</p>
+							<p class="mt-1 text-base opacity-90">
+								Lote: {errorModal.loteName} - Pieza #{errorModal.piezaIndex}
+							</p>
 						</div>
 					</div>
-					<button 
-						class="btn-icon variant-filled hover:variant-filled-primary w-12 h-12 touch-manipulation"
+					<button
+						class="variant-filled hover:variant-filled-primary btn-icon h-12 w-12 touch-manipulation"
 						onclick={closeErrorModal}
 						aria-label="Cerrar"
 					>
@@ -730,66 +829,100 @@
 			</header>
 
 			<!-- Modal Body -->
-			<section class="p-6 space-y-4">
+			<section class="space-y-4 p-6">
 				<!-- Failure Information -->
-				<div class="card variant-ghost-error p-4">
+				<div class="variant-ghost-error card p-4">
 					<div class="grid grid-cols-2 gap-4">
 						<div>
-							<p class="text-sm text-surface-600-400 mb-1">Tipo de Falla</p>
-							<p class="font-bold text-lg">{getFailureTypeName(errorModal.failureCode)}</p>
+							<p class="mb-1 text-sm text-surface-600-400">Tipo de Falla</p>
+							<p class="text-lg font-bold">{getFailureTypeName(errorModal.failureCode)}</p>
 						</div>
 						<div>
-							<p class="text-sm text-surface-600-400 mb-1">Código de Falla</p>
-							<p class="font-bold text-lg">#{errorModal.failureCode}</p>
+							<p class="mb-1 text-sm text-surface-600-400">Código de Falla</p>
+							<p class="text-lg font-bold">#{errorModal.failureCode}</p>
 						</div>
 					</div>
 				</div>
 
-				<!-- Image -->
-				{#if errorModal.imagePath}
-					<div class="card variant-glass-surface p-2">
-						<img 
-							src={errorModal.imagePath} 
-							alt="Imagen de la falla"
-							class="w-full h-auto rounded-lg"
-						/>
+				<!-- Image Gallery -->
+				{#if errorModal.imageList.length > 0}
+					<div class="variant-glass-surface card p-4">
+						<!-- Carousel -->
+						<div class="grid grid-cols-[auto_1fr_auto] items-center gap-4">
+							<!-- Left Button -->
+							<button bind:this={btnLeft} onclick={left} class="btn-icon preset-filled"> ← </button>
+
+							<!-- Image Container -->
+							<div
+								bind:this={carousel}
+								class="flex max-w-full snap-x snap-mandatory overflow-x-auto scroll-smooth rounded-container"
+							>
+								{#each errorModal.imageList as img, i}
+									<img
+										class="max-h-[70vh] w-[900px] snap-center rounded-container object-contain"
+										src={img}
+										alt={`img-${i}`}
+									/>
+								{/each}
+							</div>
+
+							<!-- Right Button -->
+							<button bind:this={btnRight} onclick={right} class="btn-icon preset-filled">
+								→
+							</button>
+						</div>
+
+						<!-- Thumbnails -->
+						{#if errorModal.imageList.length > 1}
+							<div class="mt-4 grid grid-cols-6 gap-2">
+								{#each errorModal.imageList as img, i}
+									<button onclick={() => goTo(i)} class="hover:brightness-125">
+										<img class="rounded-container" src={img} alt={`thumb-${i}`} />
+									</button>
+								{/each}
+							</div>
+						{/if}
 					</div>
 				{:else}
-					<div class="card variant-ghost-surface p-8 text-center">
-						<p class="text-surface-600-400">⏳ Cargando imagen...</p>
+					<div class="variant-ghost-surface card p-8 text-center">
+						<!-- <p class="text-surface-600-400">Sin imágenes asociadas para esta pieza.</p> -->
 					</div>
 				{/if}
 
 				<!-- Instructions -->
 				<div class="alert variant-filled-error">
 					<div class="alert-message">
-						<h4 class="font-bold mb-2">🛑 Producción Pausada Automáticamente</h4>
+						<h4 class="mb-2 font-bold">🛑 Producción Pausada Automáticamente</h4>
 						<p class="text-sm">
-							Se ha detectado una falla en la pieza #{errorModal.piezaIndex} y la producción ha sido pausada para prevenir errores en cascada.
+							Se ha detectado una falla en la pieza #{errorModal.piezaIndex} y la producción ha sido
+							pausada para prevenir errores en cascada.
 						</p>
-						<p class="text-sm mt-2 font-semibold">
-							⚠️ Revise la imagen, tome las acciones correctivas necesarias y reinicie la producción manualmente cuando esté listo.
+						<p class="mt-2 text-sm font-semibold">
+							⚠️ Revise la imagen, tome las acciones correctivas necesarias y reinicie la producción
+							manualmente cuando esté listo.
 						</p>
 					</div>
 				</div>
 			</section>
 
 			<!-- Modal Footer -->
-			<footer class="card-footer bg-surface-200-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-6">
-				<div class="text-base text-warning-500 flex items-center gap-2">
+			<footer
+				class="card-footer flex flex-col items-start justify-between gap-4 bg-surface-200-800 p-6 md:flex-row md:items-center"
+			>
+				<div class="flex items-center gap-2 text-base text-warning-500">
 					<IconAlertCircle size={20} />
 					<span><span class="font-bold">Nota:</span> Debe reiniciar la producción manualmente</span>
 				</div>
-				<div class="flex gap-3 w-full md:w-auto">
-					<button 
-						class="btn variant-filled-error flex-1 md:flex-none text-lg px-6 py-4 min-h-[60px] touch-manipulation"
+				<div class="flex w-full gap-3 md:w-auto">
+					<button
+						class="variant-filled-error btn min-h-[60px] flex-1 touch-manipulation px-6 py-4 text-lg md:flex-none"
 						onclick={closeErrorModal}
 					>
 						<IconPause size={24} />
 						<span>Mantener Pausada</span>
 					</button>
-					<button 
-						class="btn variant-filled-success flex-1 md:flex-none text-lg px-6 py-4 min-h-[60px] touch-manipulation"
+					<button
+						class="variant-filled-success btn min-h-[60px] flex-1 touch-manipulation px-6 py-4 text-lg md:flex-none"
 						onclick={resumeProduction}
 					>
 						<IconCheckCircle size={24} />
@@ -800,31 +933,30 @@
 		</div>
 	</div>
 {/if}
-
 <!-- Emergency Stop Modal -->
 {#if emergencyStopModal.show}
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div 
+	<div
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
 		onclick={closeEmergencyStopModal}
 	>
-		<div 
-			class="card variant-filled-error w-full max-w-2xl max-h-[90vh] overflow-auto m-4 p-0"
+		<div
+			class="variant-filled-error m-4 max-h-[90vh] w-full max-w-2xl overflow-auto card p-0"
 			onclick={(e) => e.stopPropagation()}
 		>
 			<!-- Modal Header -->
-			<header class="card-header bg-error-500 text-white p-6">
+			<header class="card-header bg-error-500 p-6 text-white">
 				<div class="flex items-center justify-between">
 					<div class="flex items-center gap-4">
 						<IconAlertTriangle size={48} class="animate-pulse" />
 						<div>
 							<h3 class="text-2xl font-bold">🚨 PARO DE EMERGENCIA</h3>
-							<p class="text-base opacity-90 mt-1">Estado: {emergencyStopModal.reason}</p>
+							<p class="mt-1 text-base opacity-90">Estado: {emergencyStopModal.reason}</p>
 						</div>
 					</div>
-					<button 
-						class="btn-icon variant-filled hover:variant-filled-primary w-12 h-12 touch-manipulation"
+					<button
+						class="variant-filled hover:variant-filled-primary btn-icon h-12 w-12 touch-manipulation"
 						onclick={closeEmergencyStopModal}
 						aria-label="Cerrar"
 					>
@@ -834,51 +966,55 @@
 			</header>
 
 			<!-- Modal Body -->
-			<section class="p-6 space-y-4">
+			<section class="space-y-4 p-6">
 				<!-- Emergency Information -->
-				<div class="card variant-ghost-error p-4">
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+				<div class="variant-ghost-error card p-4">
+					<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 						<div>
-							<p class="text-sm text-surface-600-400 mb-1">Motivo</p>
-							<p class="font-bold text-lg">{emergencyStopModal.reason}</p>
+							<p class="mb-1 text-sm text-surface-600-400">Motivo</p>
+							<p class="text-lg font-bold">{emergencyStopModal.reason}</p>
 						</div>
 						<div>
-							<p class="text-sm text-surface-600-400 mb-1">Lote Afectado</p>
-							<p class="font-bold text-lg">{emergencyStopModal.loteName}</p>
+							<p class="mb-1 text-sm text-surface-600-400">Lote Afectado</p>
+							<p class="text-lg font-bold">{emergencyStopModal.loteName}</p>
 						</div>
 					</div>
 					<div class="mt-4">
-						<p class="text-sm text-surface-600-400 mb-1">Mensaje</p>
-						<p class="font-semibold text-base">{emergencyStopModal.message}</p>
+						<p class="mb-1 text-sm text-surface-600-400">Mensaje</p>
+						<p class="text-base font-semibold">{emergencyStopModal.message}</p>
 					</div>
 					<div class="mt-4">
-						<p class="text-sm text-surface-600-400 mb-1">Timestamp</p>
-						<p class="font-mono text-sm">{new Date(emergencyStopModal.timestamp).toLocaleString()}</p>
+						<p class="mb-1 text-sm text-surface-600-400">Timestamp</p>
+						<p class="font-mono text-sm">
+							{new Date(emergencyStopModal.timestamp).toLocaleString()}
+						</p>
 					</div>
 				</div>
 
 				<!-- Instructions -->
 				<div class="alert variant-filled-error">
 					<div class="alert-message">
-						<h4 class="font-bold mb-2">🛑 PRODUCCIÓN DETENIDA POR MANTENIMIENTO</h4>
+						<h4 class="mb-2 font-bold">🛑 PRODUCCIÓN DETENIDA POR MANTENIMIENTO</h4>
 						<p class="text-sm">
-							El PLC ha enviado una señal de mantenimiento. La producción se ha detenido inmediatamente para garantizar la seguridad del equipo y personal.
+							El PLC ha enviado una señal de mantenimiento. La producción se ha detenido
+							inmediatamente para garantizar la seguridad del equipo y personal.
 						</p>
-						<p class="text-sm mt-2 font-semibold">
-							⚠️ Complete las tareas de mantenimiento y reinicie la producción manualmente cuando esté listo.
+						<p class="mt-2 text-sm font-semibold">
+							⚠️ Complete las tareas de mantenimiento y reinicie la producción manualmente cuando
+							esté listo.
 						</p>
 					</div>
 				</div>
 
 				<!-- Safety Notice -->
-				<div class="card variant-glass-surface p-4 border-l-4 border-warning-500">
+				<div class="variant-glass-surface card border-l-4 border-warning-500 p-4">
 					<div class="flex items-start gap-3">
-						<IconAlertCircle size={24} class="text-warning-500 mt-1" />
+						<IconAlertCircle size={24} class="mt-1 text-warning-500" />
 						<div>
-							<h5 class="font-bold text-warning-500 mb-2">Nota de Seguridad</h5>
+							<h5 class="mb-2 font-bold text-warning-500">Nota de Seguridad</h5>
 							<p class="text-sm text-surface-600-400">
-								Este paro de emergencia se activó automáticamente cuando el PLC detectó condiciones de mantenimiento. 
-								Verifique el estado del equipo antes de reiniciar la producción.
+								Este paro de emergencia se activó automáticamente cuando el PLC detectó condiciones
+								de mantenimiento. Verifique el estado del equipo antes de reiniciar la producción.
 							</p>
 						</div>
 					</div>
@@ -886,14 +1022,18 @@
 			</section>
 
 			<!-- Modal Footer -->
-			<footer class="card-footer bg-surface-200-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-6">
-				<div class="text-base text-warning-500 flex items-center gap-2">
+			<footer
+				class="card-footer flex flex-col items-start justify-between gap-4 bg-surface-200-800 p-6 md:flex-row md:items-center"
+			>
+				<div class="flex items-center gap-2 text-base text-warning-500">
 					<IconAlertCircle size={20} />
-					<span><span class="font-bold">Importante:</span> Producción detenida por mantenimiento</span>
+					<span
+						><span class="font-bold">Importante:</span> Producción detenida por mantenimiento</span
+					>
 				</div>
-				<div class="flex gap-3 w-full md:w-auto">
-					<button 
-						class="btn variant-filled-error flex-1 md:flex-none text-lg px-6 py-4 min-h-[60px] touch-manipulation"
+				<div class="flex w-full gap-3 md:w-auto">
+					<button
+						class="variant-filled-error btn min-h-[60px] flex-1 touch-manipulation px-6 py-4 text-lg md:flex-none"
 						onclick={closeEmergencyStopModal}
 					>
 						<IconPause size={24} />
@@ -909,26 +1049,26 @@
 {#if modelMismatchModal.show}
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div 
+	<div
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
 		onclick={closeModelMismatchModal}
 	>
-		<div 
-			class="card variant-filled-error w-full max-w-2xl max-h-[90vh] overflow-auto m-4 p-0"
+		<div
+			class="variant-filled-error m-4 max-h-[90vh] w-full max-w-2xl overflow-auto card p-0"
 			onclick={(e) => e.stopPropagation()}
 		>
 			<!-- Modal Header -->
-			<header class="card-header bg-error-500 text-white p-6">
+			<header class="card-header bg-error-500 p-6 text-white">
 				<div class="flex items-center justify-between">
 					<div class="flex items-center gap-4">
 						<IconAlertTriangle size={48} class="animate-pulse" />
 						<div>
 							<h3 class="text-2xl font-bold">🚨 ERROR DE MODELO ID</h3>
-							<p class="text-base opacity-90 mt-1">Mismatch detectado en producción</p>
+							<p class="mt-1 text-base opacity-90">Mismatch detectado en producción</p>
 						</div>
 					</div>
-					<button 
-						class="btn-icon variant-filled hover:variant-filled-primary w-12 h-12 touch-manipulation"
+					<button
+						class="variant-filled hover:variant-filled-primary btn-icon h-12 w-12 touch-manipulation"
 						onclick={closeModelMismatchModal}
 						aria-label="Cerrar"
 					>
@@ -938,66 +1078,69 @@
 			</header>
 
 			<!-- Modal Body -->
-			<section class="p-6 space-y-4">
+			<section class="space-y-4 p-6">
 				<!-- Error Information -->
-				<div class="card variant-ghost-error p-4">
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+				<div class="variant-ghost-error card p-4">
+					<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 						<div>
-							<p class="text-sm text-surface-600-400 mb-1">Lote</p>
-							<p class="font-bold text-lg">{modelMismatchModal.loteName}</p>
+							<p class="mb-1 text-sm text-surface-600-400">Lote</p>
+							<p class="text-lg font-bold">{modelMismatchModal.loteName}</p>
 						</div>
 						<div>
-							<p class="text-sm text-surface-600-400 mb-1">Receta</p>
-							<p class="font-bold text-lg font-mono">{modelMismatchModal.recipePpn}</p>
+							<p class="mb-1 text-sm text-surface-600-400">Receta</p>
+							<p class="font-mono text-lg font-bold">{modelMismatchModal.recipePpn}</p>
 						</div>
 					</div>
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+					<div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
 						<div>
-							<p class="text-sm text-surface-600-400 mb-1">Model ID Esperado</p>
-							<p class="font-bold text-lg text-success-500">{modelMismatchModal.expectedModelId}</p>
+							<p class="mb-1 text-sm text-surface-600-400">Model ID Esperado</p>
+							<p class="text-lg font-bold text-success-500">{modelMismatchModal.expectedModelId}</p>
 						</div>
 						<div>
-							<p class="text-sm text-surface-600-400 mb-1">Model ID Recibido</p>
-							<p class="font-bold text-lg text-error-500">{modelMismatchModal.receivedModelId}</p>
+							<p class="mb-1 text-sm text-surface-600-400">Model ID Recibido</p>
+							<p class="text-lg font-bold text-error-500">{modelMismatchModal.receivedModelId}</p>
 						</div>
 					</div>
 					<div class="mt-4">
-						<p class="text-sm text-surface-600-400 mb-1">Timestamp</p>
-						<p class="font-mono text-sm">{new Date(modelMismatchModal.timestamp).toLocaleString()}</p>
+						<p class="mb-1 text-sm text-surface-600-400">Timestamp</p>
+						<p class="font-mono text-sm">
+							{new Date(modelMismatchModal.timestamp).toLocaleString()}
+						</p>
 					</div>
 				</div>
 
 				<!-- Error Details -->
 				<div class="alert variant-filled-error">
 					<div class="alert-message">
-						<h4 class="font-bold mb-2">❌ PIEZA RECHAZADA</h4>
+						<h4 class="mb-2 font-bold">❌ PIEZA RECHAZADA</h4>
 						<p class="text-sm">
-							El PLC envió un Model ID ({modelMismatchModal.receivedModelId}) que no coincide con el lote activo ({modelMismatchModal.expectedModelId}).
+							El PLC envió un Model ID ({modelMismatchModal.receivedModelId}) que no coincide con el
+							lote activo ({modelMismatchModal.expectedModelId}).
 						</p>
-						<p class="text-sm mt-2 font-semibold">
+						<p class="mt-2 text-sm font-semibold">
 							🛡️ La pieza NO se guardó en la base de datos para mantener la integridad de los datos.
 						</p>
 					</div>
 				</div>
 
 				<!-- Instructions -->
-				<div class="card variant-glass-surface p-4 border-l-4 border-warning-500">
+				<div class="variant-glass-surface card border-l-4 border-warning-500 p-4">
 					<div class="flex items-start gap-3">
-						<IconAlertCircle size={24} class="text-warning-500 mt-1" />
+						<IconAlertCircle size={24} class="mt-1 text-warning-500" />
 						<div>
-							<h5 class="font-bold text-warning-500 mb-2">Acción Requerida</h5>
+							<h5 class="mb-2 font-bold text-warning-500">Acción Requerida</h5>
 							<p class="text-sm text-surface-600-400">
-								Verifique la configuración del PLC y asegúrese de que esté enviando el Model ID correcto ({modelMismatchModal.expectedModelId}) 
-								para el lote activo ({modelMismatchModal.loteName}).
+								Verifique la configuración del PLC y asegúrese de que esté enviando el Model ID
+								correcto ({modelMismatchModal.expectedModelId}) para el lote activo ({modelMismatchModal.loteName}).
 							</p>
 						</div>
 					</div>
 				</div>
 
 				<!-- Model ID Reference -->
-				<div class="card variant-ghost-surface p-4">
-					<h5 class="font-bold mb-3">📋 Referencia de Model IDs</h5>
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+				<div class="variant-ghost-surface card p-4">
+					<h5 class="mb-3 font-bold">📋 Referencia de Model IDs</h5>
+					<div class="grid grid-cols-1 gap-2 text-sm md:grid-cols-2">
 						<div class="flex justify-between">
 							<span class="font-mono">ID 1:</span>
 							<span>1020746 (2 cond.)</span>
@@ -1031,14 +1174,16 @@
 			</section>
 
 			<!-- Modal Footer -->
-			<footer class="card-footer bg-surface-200-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-6">
-				<div class="text-base text-warning-500 flex items-center gap-2">
+			<footer
+				class="card-footer flex flex-col items-start justify-between gap-4 bg-surface-200-800 p-6 md:flex-row md:items-center"
+			>
+				<div class="flex items-center gap-2 text-base text-warning-500">
 					<IconAlertCircle size={20} />
 					<span><span class="font-bold">Protegido:</span> Datos incorrectos rechazados</span>
 				</div>
-				<div class="flex gap-3 w-full md:w-auto">
-					<button 
-						class="btn variant-filled-error flex-1 md:flex-none text-lg px-6 py-4 min-h-[60px] touch-manipulation"
+				<div class="flex w-full gap-3 md:w-auto">
+					<button
+						class="variant-filled-error btn min-h-[60px] flex-1 touch-manipulation px-6 py-4 text-lg md:flex-none"
 						onclick={closeModelMismatchModal}
 					>
 						<IconCheckCircle size={24} />
@@ -1054,40 +1199,41 @@
 {#if stopProductionModal.show}
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div 
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
 		onclick={closeStopProductionModal}
 	>
-		<div 
-			class="card variant-filled-warning w-full max-w-md p-0"
+		<div
+			class="variant-filled-warning w-full max-w-md card p-0"
 			onclick={(e) => e.stopPropagation()}
 		>
 			<!-- Modal Header -->
-			<header class="card-header bg-warning-500 text-surface-900 p-6">
+			<header class="card-header bg-warning-500 p-6 text-surface-900">
 				<div class="flex items-center gap-4">
 					<IconAlertCircle size={40} class="animate-pulse" />
 					<div>
 						<h3 class="text-2xl font-bold">Confirmar Detención</h3>
-						<p class="text-base opacity-90 mt-1">¿Está seguro de detener la producción?</p>
+						<p class="mt-1 text-base opacity-90">¿Está seguro de detener la producción?</p>
 					</div>
 				</div>
 			</header>
 
 			<!-- Modal Body -->
-			<section class="p-6 space-y-4">
+			<section class="space-y-4 p-6">
 				<div class="alert variant-ghost-warning">
 					<div class="alert-message">
 						<p class="text-base">
-							Al detener la producción, el sistema dejará de procesar piezas. Deberá seleccionar un lote manualmente para reiniciar.
+							Al detener la producción, el sistema dejará de procesar piezas. Deberá seleccionar un
+							lote manualmente para reiniciar.
 						</p>
 					</div>
 				</div>
 
 				{#if lineStatus.lote}
-					<div class="card variant-glass-surface p-4">
-						<p class="text-sm text-surface-600-400 mb-2">Lote Actual</p>
-						<p class="font-bold text-lg">{lineStatus.lote.name}</p>
-						<p class="text-sm text-surface-600-400 mt-2">
+					<div class="variant-glass-surface card p-4">
+						<p class="mb-2 text-sm text-surface-600-400">Lote Actual</p>
+						<p class="text-lg font-bold">{lineStatus.lote.name}</p>
+						<p class="mt-2 text-sm text-surface-600-400">
 							Progreso: {lineStatus.lote.piezasOk} OK / {lineStatus.lote.piezasFallas} NOK
 						</p>
 					</div>
@@ -1095,16 +1241,16 @@
 			</section>
 
 			<!-- Modal Footer -->
-			<footer class="card-footer bg-surface-200-800 flex gap-3 p-6">
-				<button 
-					class="btn variant-ghost-surface flex-1 text-lg px-6 py-4 min-h-[60px] touch-manipulation"
+			<footer class="card-footer flex gap-3 bg-surface-200-800 p-6">
+				<button
+					class="variant-ghost-surface btn min-h-[60px] flex-1 touch-manipulation px-6 py-4 text-lg"
 					onclick={closeStopProductionModal}
 				>
 					<IconX size={24} />
 					<span>Cancelar</span>
 				</button>
-				<button 
-					class="btn variant-filled-error flex-1 text-lg px-6 py-4 min-h-[60px] touch-manipulation"
+				<button
+					class="variant-filled-error btn min-h-[60px] flex-1 touch-manipulation px-6 py-4 text-lg"
 					onclick={confirmStopProduction}
 				>
 					<IconSquare size={24} />
@@ -1138,4 +1284,3 @@
 		touch-action: manipulation;
 	}
 </style>
-

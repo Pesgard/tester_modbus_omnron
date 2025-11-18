@@ -1,14 +1,17 @@
 /**
  * PLC Data Handler
- * 
+ *
  * Handles incoming PLC data, validates it, stores in database,
  * and broadcasts to connected clients via WebSocket.
  */
 
+import path from 'path';
 import { prisma } from '$lib/prisma';
 import { broadcast } from '../ws/ws.server';
 import { processPLCData } from './plc-parser';
 import { setActiveModelId } from '../tcp/tcp.server';
+import { imageBufferService } from './image-buffer.service';
+import { finalizePendingImage, generateFinalImageFilename } from './image-handler';
 
 /**
  * Tracks the current active lot for production
@@ -21,7 +24,7 @@ let currentActiveLot: { id: string; recetaId: string; name: string } | null = nu
 export function setActiveLot(loteId: string, recetaId: string, name: string) {
 	currentActiveLot = { id: loteId, recetaId, name };
 	console.log(`[PLC Handler] Active lot set: ${name} (${loteId})`);
-	
+
 	// Broadcast lot started event to all connected clients
 	broadcast({
 		type: 'lot-started',
@@ -41,7 +44,7 @@ export function getActiveLot() {
  */
 export function getCurrentLotInfo(): { loteId: string; loteName: string; modelId: string } | null {
 	if (!currentActiveLot) return null;
-	
+
 	return {
 		loteId: currentActiveLot.id,
 		loteName: currentActiveLot.name,
@@ -56,10 +59,10 @@ export function clearActiveLot() {
 	const previousLot = currentActiveLot;
 	console.log('[PLC Handler] Active lot cleared');
 	currentActiveLot = null;
-	
+
 	// Stop sending model_id to PLC
 	setActiveModelId(null);
-	
+
 	// Broadcast lot stopped event
 	if (previousLot) {
 		broadcast({
@@ -84,11 +87,13 @@ export async function handlePLCData(rawData: number[]): Promise<void> {
 
 		// 🚨 EMERGENCY STOP: Check for MAINTENANCE status
 		if (parsed.lineStatus === 'MAINTENANCE' && currentActiveLot) {
-			console.log('🚨 [EMERGENCY STOP] MAINTENANCE status received - Stopping production immediately');
-			
+			console.log(
+				'🚨 [EMERGENCY STOP] MAINTENANCE status received - Stopping production immediately'
+			);
+
 			// Stop production immediately
 			clearActiveLot();
-			
+
 			// Broadcast emergency stop event
 			broadcast({
 				type: 'emergency-stop',
@@ -100,7 +105,7 @@ export async function handlePLCData(rawData: number[]): Promise<void> {
 					loteName: currentActiveLot.name
 				}
 			});
-			
+
 			return; // Don't process any more data
 		}
 
@@ -145,12 +150,16 @@ export async function handlePLCData(rawData: number[]): Promise<void> {
 		// 🛡️ CRITICAL: Validate model_id matches the active lot's recipe
 		const expectedModelId = lote.receta.model_id;
 		const receivedModelId = parsed.modelId;
-		
+
 		if (receivedModelId !== expectedModelId) {
-			console.error(`🚨 [PLC Handler] MODEL ID MISMATCH! Expected: ${expectedModelId}, Received: ${receivedModelId}`);
+			console.error(
+				`🚨 [PLC Handler] MODEL ID MISMATCH! Expected: ${expectedModelId}, Received: ${receivedModelId}`
+			);
 			console.error(`🚨 [PLC Handler] Lot: ${lote.name} (${lote.id})`);
-			console.error(`🚨 [PLC Handler] Recipe: ${lote.receta.ppn} - ${lote.receta.item_description}`);
-			
+			console.error(
+				`🚨 [PLC Handler] Recipe: ${lote.receta.ppn} - ${lote.receta.item_description}`
+			);
+
 			// Broadcast model mismatch error
 			broadcast({
 				type: 'model-mismatch',
@@ -164,28 +173,30 @@ export async function handlePLCData(rawData: number[]): Promise<void> {
 					timestamp: parsed.timestamp
 				}
 			});
-			
+
 			// DO NOT save to database - this prevents wrong data
 			return;
 		}
 
-		console.log(`✅ [PLC Handler] Model ID validated: ${receivedModelId} matches recipe ${lote.receta.ppn}`);
+		console.log(
+			`✅ [PLC Handler] Model ID validated: ${receivedModelId} matches recipe ${lote.receta.ppn}`
+		);
 
-	// Create piece record
-	const nextIndex = lote.piezas_ok + lote.piezas_fallas + 1;
-	const isOK = parsed.pieceStatus === 'OK' && parsed.failureType === 'Sin falla';
-	const failureCode = parsed.rawData[2]; // Index 2 is failure_code
+		// Create piece record
+		const nextIndex = lote.piezas_ok + lote.piezas_fallas + 1;
+		const isOK = parsed.pieceStatus === 'OK' && parsed.failureType === 'Sin falla';
+		const failureCode = parsed.rawData[2]; // Index 2 is failure_code
 
-	const pieza = await prisma.pieza.create({
-		data: {
-			lote_id: lote.id,
-			resultado_bits: parsed.rawData,
-			ok: isOK,
-			indice: nextIndex,
-			imagen_path: '', // Empty string initially, will be updated when image is received
-			processed_at: parsed.timestamp
-		}
-	});
+		const pieza = await prisma.pieza.create({
+			data: {
+				lote_id: lote.id,
+				resultado_bits: parsed.rawData,
+				ok: isOK,
+				indice: nextIndex,
+				imagen_path: '', // Empty string initially, will be updated when image is received
+				processed_at: parsed.timestamp
+			}
+		});
 
 		// Update lot counters
 		await prisma.lote.update({
@@ -210,40 +221,120 @@ export async function handlePLCData(rawData: number[]): Promise<void> {
 			}
 		});
 
-	// If there's a failure, prepare to receive image
-	if (failureCode > 0 && !isOK) {
-		console.log(`📸 [PLC Handler] Failure detected (code: ${failureCode}). Expecting image for piece ${nextIndex}`);
-		
-		// Store pending image info (the actual image will be processed by image-handler)
-		// The image watcher will automatically process incoming images
+		// If there's a failure, prepare to receive image and attempt to link buffered ones
+		if (failureCode > 0 && !isOK) {
+			console.log(
+				`📸 [PLC Handler] Failure detected (code: ${failureCode}). Expecting image for piece ${nextIndex}`
+			);
+
+			const piezaTimestampRaw = parsed.timestamp ? new Date(parsed.timestamp) : new Date();
+			const piezaTimestamp = Number.isNaN(piezaTimestampRaw.getTime())
+				? new Date()
+				: piezaTimestampRaw;
+
+			broadcast({
+				type: 'awaiting-image',
+				payload: {
+					loteId: lote.id,
+					loteName: lote.name,
+					piezaId: pieza.id,
+					piezaIndex: nextIndex,
+					modelId: parsed.modelId,
+					failureCode,
+					failureType: parsed.failureType
+				}
+			});
+
+			const pendingImages = await imageBufferService.findImagesForTimestamp(piezaTimestamp);
+
+			if (pendingImages.length) {
+				const movedImages = [];
+
+				for (const [index, pending] of pendingImages.entries()) {
+					const ext = path.extname(pending.filename) || '.jpg';
+					const filename = generateFinalImageFilename(
+						parsed.modelId,
+						failureCode,
+						piezaTimestamp,
+						index,
+						ext
+					);
+
+					try {
+						const finalized = await finalizePendingImage(pending, lote.name, filename);
+						movedImages.push({
+							id: pending.id,
+							publicPath: finalized.publicPath,
+							filename,
+							bufferedAt: pending.timestamp
+						});
+					} catch (error) {
+						console.error('[PLC Handler] Failed to finalize pending image:', error);
+					}
+				}
+
+				if (movedImages.length) {
+					await prisma.imagen.createMany({
+						data: movedImages.map((img) => ({
+							lote_id: lote.id,
+							pieza_id: pieza.id,
+							path: img.publicPath,
+							tipo_falla: parsed.failureType,
+							metadata: {
+								pendingImageId: img.id,
+								bufferedAt: img.bufferedAt.toISOString(),
+								linkedAt: new Date().toISOString(),
+								linkedPieceIndex: nextIndex,
+								failureCode
+							}
+						}))
+					});
+
+					await prisma.pieza.update({
+						where: { id: pieza.id },
+						data: { imagen_path: movedImages[0].publicPath }
+					});
+
+					await imageBufferService.markAsLinked(
+						movedImages.map((img) => img.id),
+						pieza.id
+					);
+
+					broadcast({
+						type: 'piece-images-linked',
+						payload: {
+							loteId: lote.id,
+							piezaId: pieza.id,
+							piezaIndex: nextIndex,
+							images: movedImages.map((img) => img.publicPath)
+						}
+					});
+				} else {
+					console.warn(
+						`[PLC Handler] Pending images found for timestamp ${piezaTimestamp.toISOString()} but none could be finalized`
+					);
+				}
+			} else {
+				console.warn(
+					`[PLC Handler] No pending images found near timestamp ${piezaTimestamp.toISOString()}`
+				);
+			}
+		}
+
+		// Broadcast piece created event
 		broadcast({
-			type: 'awaiting-image',
+			type: 'piece-created',
 			payload: {
 				loteId: lote.id,
 				loteName: lote.name,
 				piezaId: pieza.id,
-				piezaIndex: nextIndex,
-				modelId: parsed.modelId,
+				index: nextIndex,
+				ok: isOK,
 				failureCode,
-				failureType: parsed.failureType
+				hasImage: failureCode > 0 && !isOK,
+				parsed
 			}
 		});
-	}
-
-	// Broadcast piece created event
-	broadcast({
-		type: 'piece-created',
-		payload: {
-			loteId: lote.id,
-			loteName: lote.name,
-			piezaId: pieza.id,
-			index: nextIndex,
-			ok: isOK,
-			failureCode,
-			hasImage: failureCode > 0 && !isOK,
-			parsed
-		}
-	});
 
 		// Check if lot should be auto-closed
 		if (lote.piezas_ok + (isOK ? 1 : 0) >= lote.max_piezas_ok) {
@@ -274,7 +365,7 @@ export async function handlePLCData(rawData: number[]): Promise<void> {
 		);
 	} catch (error) {
 		console.error('[PLC Handler] Error handling PLC data:', error);
-		
+
 		// Broadcast error to clients
 		broadcast({
 			type: 'plc-error',
@@ -329,4 +420,3 @@ export async function getLineStatus() {
 		}
 	};
 }
-
