@@ -32,6 +32,12 @@ initializeServers();
  * - Resolves the request with the updated event object.
  */
 export const handle: Handle = async ({ event, resolve }) => {
+	// Intercept image requests and redirect to API endpoint
+	// This maintains compatibility with old /images/ paths
+	if (event.url.pathname.startsWith('/images/')) {
+		const imagePath = event.url.pathname.replace('/images/', '');
+		return Response.redirect(`${event.url.origin}/api/images/serve/${imagePath}`, 307);
+	}
 
 	// Validate session and set user in locals
 	const sessionId = event.cookies.get(lucia.sessionCookieName);

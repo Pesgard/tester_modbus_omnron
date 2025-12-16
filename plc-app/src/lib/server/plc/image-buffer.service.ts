@@ -14,7 +14,8 @@ export class ImageBufferService {
 		});
 	}
 
-	async findImagesForTimestamp(ts: Date, limit = 3, windowMs = 30000) {
+	async findImagesForTimestamp(ts: Date, limit = 3, windowMs = 60000) {
+		// windowMs: 60000 = 1 minute (search window: ±1 minute from timestamp)
 		const pivot = ts.getTime();
 		const gte = new Date(pivot - windowMs);
 		const lte = new Date(pivot + windowMs);

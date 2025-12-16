@@ -124,6 +124,20 @@ CREATE TABLE "public"."Imagen" (
 );
 
 -- CreateTable
+CREATE TABLE "public"."PendingImage" (
+    "id" TEXT NOT NULL,
+    "timestamp" TIMESTAMP(3) NOT NULL,
+    "filename" TEXT NOT NULL,
+    "finalPath" TEXT NOT NULL,
+    "size" INTEGER NOT NULL,
+    "linked" BOOLEAN NOT NULL DEFAULT false,
+    "linkedPieceId" TEXT,
+    "linkedAt" TIMESTAMP(3),
+
+    CONSTRAINT "PendingImage_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "public"."Historial" (
     "id" TEXT NOT NULL,
     "lote_id" TEXT NOT NULL,

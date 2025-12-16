@@ -21,7 +21,7 @@ import random
 # ========================================
 TCP_HOST = 'localhost'
 TCP_PORT = 900  # Cambiado de 5000 a 900 para coincidir con tu backend
-FTP_DIR = os.path.expanduser('~/ftp/plc_images')
+FTP_DIR = ('C:/ftp/upload')
 
 
 # Colores ANSI

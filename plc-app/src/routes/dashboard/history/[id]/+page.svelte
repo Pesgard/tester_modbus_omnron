@@ -14,6 +14,8 @@
 
 	let { data }: { data: PageData } = $props();
 
+	// console.log(data);
+
 	const canExport = $derived(
 		data.user?.permisos.includes('*') ||
 			data.user?.permisos.includes('history.*') ||
