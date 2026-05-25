@@ -62,6 +62,16 @@ Este sistema de control de calidad industrial permite gestionar y monitorear la 
 
 **Nota:** Si olvidó su contraseña, contacte al administrador del sistema.
 
+### 2.1.1 Credenciales
+
+
+| Usuario | Contraseña | Rol | Acceso |
+|---------|-----------|-----|--------|
+| admin | admin123 | Admin | Acceso total |
+| manager | manager123 | Manager | Gestión y visualización |
+| operador | operador123 | Operador | Control de producción |
+| viewer | viewer123 | Viewer | Solo lectura |
+
 ### 2.2 Pantalla de Carga
 
 Después de iniciar sesión, verá brevemente una pantalla de carga mientras el sistema prepara su sesión.
